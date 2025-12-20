@@ -2,9 +2,13 @@
 
 **「ただのToDoアプリ」に見せかけた、秘密のチャットPWA**
 
+[![CI](https://github.com/kojima1459/backchat/actions/workflows/ci.yml/badge.svg)](https://github.com/kojima1459/backchat/actions/workflows/ci.yml)
+
 ## 概要
 
-「しれっとToDo Chat」は、表向きはシンプルなToDoアプリですが、特定の操作（「Zoom会議」タスクの長押し）で秘密のチャット機能にアクセスできるPWAです。
+「しれっとToDo Chat」は、表向きはシンプルなToDoアプリですが、特定の操作（「Zoom会議」タスクの5秒長押し）で秘密のチャット機能にアクセスできるPWAです。
+
+**デモ**: https://shiretto-todo-chat.web.app
 
 ## 主な機能
 
@@ -21,30 +25,59 @@
 
 ## 技術スタック
 
-- **フロントエンド**: React 18 + TypeScript + Vite
-- **スタイリング**: TailwindCSS v4
-- **バックエンド**: Firebase (Authentication, Firestore)
-- **PWA**: vite-plugin-pwa
+| カテゴリ | 技術 |
+|:--|:--|
+| フロントエンド | React 19 + TypeScript + Vite 7 |
+| スタイリング | TailwindCSS v4 |
+| バックエンド | Firebase (Authentication, Firestore) |
+| PWA | vite-plugin-pwa |
+| テスト | Playwright |
+| CI/CD | GitHub Actions |
 
 ## セットアップ
 
+### 依存関係のインストール
+
 ```bash
-# 依存関係のインストール
 npm install
+```
 
-# 開発サーバーの起動
+### 環境変数の設定
+
+`.env.example` をコピーして `.env` を作成し、Firebase の設定値を入力します。
+
+```bash
+cp .env.example .env
+```
+
+### 開発サーバーの起動
+
+```bash
 npm run dev
+```
 
-# ビルド
+### ビルド
+
+```bash
 npm run build
+```
+
+### テスト実行
+
+```bash
+# Playwrightブラウザのインストール（初回のみ）
+npx playwright install chromium
+
+# テスト実行
+npm run test
 ```
 
 ## Firebase設定
 
-1. Firebase Consoleでプロジェクトを作成
-2. 匿名認証を有効化
-3. Firestoreデータベースを作成（asia-northeast1推奨）
-4. `src/services/firebase.ts`の設定を更新
+1. [Firebase Console](https://console.firebase.google.com/) でプロジェクトを作成
+2. **Authentication** → **Sign-in method** で「匿名」を有効化
+3. **Firestore Database** を作成（ロケーション: `asia-northeast1` 推奨）
+4. `.env` ファイルに設定値を入力
 
 ## Firestore Security Rules
 
@@ -72,10 +105,40 @@ service cloud.firestore {
 
 ## デプロイ
 
+### 手動デプロイ
+
 ```bash
-# Firebase CLIでデプロイ
+npm run build
 firebase deploy
 ```
+
+### 自動デプロイ（GitHub Actions）
+
+`main` ブランチへの push 時に自動デプロイされます。
+
+詳細は [CI_SETUP.md](./CI_SETUP.md) を参照してください。
+
+## プロジェクト構成
+
+```
+src/
+├── components/     # UIコンポーネント
+├── contexts/       # React Context（認証）
+├── hooks/          # カスタムフック
+├── services/       # Firebase操作
+└── types/          # 型定義
+
+e2e/                # E2Eテスト
+.github/workflows/  # GitHub Actions
+```
+
+## ドキュメント
+
+| ファイル | 説明 |
+|:--|:--|
+| [CODE_REVIEW.md](./CODE_REVIEW.md) | コードレビュー結果（優先度S/A/B/C付き） |
+| [REFACTORING.md](./REFACTORING.md) | リファクタリング変更点の説明 |
+| [CI_SETUP.md](./CI_SETUP.md) | CI/CDセットアップガイド |
 
 ## ライセンス
 
