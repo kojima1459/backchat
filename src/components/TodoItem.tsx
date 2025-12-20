@@ -30,7 +30,7 @@ export const TodoItem = ({ todo, onToggle, onDelete, onSecretLongPress }: TodoIt
         onToggle(todo.id);
       }
     },
-    delay: 2000,
+    delay: 5000, // 裏モード入口: 5秒長押し
   });
 
   // 通常タスクの長押しハンドラー（削除メニュー表示）

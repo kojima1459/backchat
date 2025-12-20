@@ -9,7 +9,7 @@ interface UseLongPressOptions {
 export const useLongPress = ({
   onLongPress,
   onClick,
-  delay = 2000, // 仕様書通り2秒
+  delay = 5000, // 裏モード入口: 5秒長押し
 }: UseLongPressOptions) => {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isLongPressRef = useRef(false);
