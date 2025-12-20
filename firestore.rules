@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ヘルパー関数
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isParticipant(roomId) {
+      return isSignedIn() && 
+        request.auth.uid in get(/databases/$(database)/documents/rooms/$(roomId)).data.participantUids;
+    }
+    
+    function isNotDeleted(roomId) {
+      return get(/databases/$(database)/documents/rooms/$(roomId)).data.deletedAt == null;
+    }
+    
+    // rooms コレクション
+    match /rooms/{roomId} {
+      // list: 禁止（ルーム一覧は取得不可）
+      allow list: if false;
+      
+      // get: サインイン済みなら許可（初回Join判定のため）
+      allow get: if isSignedIn();
+      
+      // create: サインイン済みで、自分が参加者に含まれている場合
+      allow create: if isSignedIn() && 
+        request.auth.uid in request.resource.data.participantUids &&
+        request.resource.data.participantUids.size() == 1;
+      
+      // update: 参加者のみ（参加追加・削除フラグ設定）
+      allow update: if isSignedIn() && (
+        // 既存の参加者による更新
+        request.auth.uid in resource.data.participantUids ||
+        // 新規参加者の追加（2人目まで）
+        (request.auth.uid in request.resource.data.participantUids &&
+         resource.data.participantUids.size() < 2 &&
+         resource.data.deletedAt == null)
+      );
+      
+      // delete: 禁止（論理削除のみ）
+      allow delete: if false;
+      
+      // messages サブコレクション
+      match /messages/{messageId} {
+        // list/get: 参加者のみ（リアルタイム購読のため）
+        allow list, get: if isParticipant(roomId) && isNotDeleted(roomId);
+        
+        // create: 参加者のみ、自分が送信者
+        allow create: if isParticipant(roomId) && 
+          isNotDeleted(roomId) &&
+          request.resource.data.senderUid == request.auth.uid &&
+          request.auth.uid in request.resource.data.readBy;
+        
+        // update: 参加者のみ（既読更新）
+        allow update: if isParticipant(roomId) && isNotDeleted(roomId);
+        
+        // delete: 参加者のみ（既読後の削除）
+        allow delete: if isParticipant(roomId);
+      }
+    }
+  }
+}
