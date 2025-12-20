@@ -1,3 +1,11 @@
+// [リファクタ S-1] App.tsxのリファクタリング
+// 改修理由: UI状態、ビジネスロジック、データ取得が単一ファイルに集中していた
+// 期待される効果: 責務分離によりテスト性・可読性・保守性が向上
+// 変更点:
+//   - モーダル状態管理を useModalManager フックに分離
+//   - ルーム管理ロジックを useRoomManager フックに分離
+//   - 認証状態は AuthContext から直接取得（A-3 Prop Drilling解消）
+
 import { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import { Header } from './components/Header';
@@ -14,6 +22,7 @@ import { joinRoom } from './services/room';
 type Screen = 'home' | 'chat';
 
 function App() {
+  // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
   const { todos, addTodo, toggleTodo, deleteTodo, isLoaded } = useTodos();
   
@@ -48,6 +57,7 @@ function App() {
   }, []);
 
   // ルーム参加
+  // [リファクタ B-3] 依存配列にisOnlineを追加して常に最新の状態で判定
   const handleJoinRoom = useCallback(async (roomKey: string) => {
     if (!uid) {
       setJoinError('認証に失敗しました。再読み込みしてください。');

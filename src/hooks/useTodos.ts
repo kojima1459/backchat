@@ -29,13 +29,36 @@ const INITIAL_TODOS: Todo[] = [
   },
 ];
 
+// [リファクタ A-2] localStorageの安全なラッパー関数
+// 改修理由: localStorageはストレージ容量超過やプライベートモードで例外をスローする可能性がある
+// 期待される効果: 例外発生時もアプリがクラッシュせず、デフォルト値で動作を継続できる
+const safeGetItem = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('[useTodos] localStorage.getItem failed:', error);
+    return null;
+  }
+};
+
+const safeSetItem = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.warn('[useTodos] localStorage.setItem failed:', error);
+    return false;
+  }
+};
+
 export const useTodos = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // ローカルストレージから読み込み
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    // [リファクタ A-2] safeGetItemを使用して例外を安全に処理
+    const stored = safeGetItem(STORAGE_KEY);
     if (stored) {
       try {
         const parsed = JSON.parse(stored) as Todo[];
@@ -57,7 +80,8 @@ export const useTodos = () => {
   // ローカルストレージに保存
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      // [リファクタ A-2] safeSetItemを使用して例外を安全に処理
+      safeSetItem(STORAGE_KEY, JSON.stringify(todos));
     }
   }, [todos, isLoaded]);
 
