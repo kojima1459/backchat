@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, DoorOpen, MoreVertical, Send, Trash2, X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { DoorOpen, MoreVertical, Send, Trash2, X } from 'lucide-react';
 import type { MessageData } from '../services/message';
 import { subscribeMessages, sendMessage, markAsRead } from '../services/message';
 import { deleteRoom, leaveRoom } from '../services/room';
@@ -80,6 +80,11 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     setActionError(null);
   };
 
+  const handleExit = useCallback(() => {
+    closeActions();
+    onBack();
+  }, [onBack]);
+
   const handleLeaveRoom = async () => {
     if (isLeaving || isDeleting) return;
     setIsLeaving(true);
@@ -116,24 +121,31 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     setActionError('削除に失敗しました。もう一度試してください。');
   };
 
-  // roomIdの最初の4文字を表示用に使用
-  const displayRoomId = roomId.substring(0, 4).toUpperCase();
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        handleExit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleExit]);
 
   return (
-    <div className="fixed inset-0 bg-bg-soft flex flex-col z-50">
+    <div className="fixed inset-0 h-[100dvh] bg-bg-soft flex flex-col z-50">
       {/* ヘッダー */}
       <header className="bg-card-white border-b border-border-light safe-area-top">
-        <div className="flex items-center justify-between px-2 py-3">
+        <div className="flex items-center px-4 py-3">
           <button
-            onClick={onBack}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            onClick={handleExit}
+            className="text-sm font-semibold text-text-sub hover:text-text-main transition-colors"
           >
-            <ArrowLeft className="w-6 h-6 text-text-sub" />
+            ← 戻る
           </button>
           
-          <h1 className="text-base font-bold text-text-main">
-            Room: {displayRoomId}
-          </h1>
+          <div className="flex-1" />
           
           <div className="relative">
             <button
