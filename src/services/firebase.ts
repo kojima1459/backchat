@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 
 // [リファクタ A-1] Firebase設定を環境変数から読み込むように変更
 // 改修理由: ハードコードされた設定値はセキュリティリスクが高く、環境ごとの切り替えも困難
@@ -21,6 +21,22 @@ const app = initializeApp(firebaseConfig);
 // Export Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+if (typeof window !== 'undefined') {
+  enableMultiTabIndexedDbPersistence(db).catch((error: unknown) => {
+    const code = typeof error === 'object' && error && 'code' in error
+      ? String((error as { code?: string }).code)
+      : '';
+
+    if (code === 'failed-precondition') {
+      console.warn('Firestore persistence failed: multiple tabs open.');
+    } else if (code === 'unimplemented') {
+      console.warn('Firestore persistence not supported in this browser.');
+    } else {
+      console.warn('Firestore persistence failed:', error);
+    }
+  });
+}
 
 // Anonymous sign-in function
 export const ensureSignedIn = async (): Promise<string> => {
