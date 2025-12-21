@@ -30,11 +30,32 @@ import {
   GEMINI_CONTEXT_STORAGE_KEY,
   GEMINI_MODEL,
 } from './constants/aiBreakdown';
+import { AI_TODAY3_PROMPT_TEMPLATE } from './constants/aiToday3';
 
 type Screen = 'home' | 'chat';
 type ThemeSetting = 'system' | 'light' | 'dark';
 type TimerPhase = 'start' | 'focus' | 'rest';
 type AiStep = { title: string; minutes: number; why: string };
+type AiTodayPick = {
+  id: string;
+  reasonJa: string;
+  reasonEn: string;
+  first5minJa: string;
+  first5minEn: string;
+};
+type AiTodayResult = {
+  picks: AiTodayPick[];
+  noteJa: string;
+  noteEn: string;
+};
+type AiTodayCandidate = {
+  id: string;
+  title: string;
+  kind?: TodoKind;
+  deadlineAt?: string;
+  deferCount?: number;
+  priorityScore?: number;
+};
 
 const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
   deleted: 'この共有は削除されました',
@@ -247,6 +268,81 @@ const buildAiBreakdownPrompt = (todo: Todo, userContext: string): string => {
     .replaceAll('{{CONTEXT_HINT}}', context || '不明');
 };
 
+const buildAiTodayPrompt = (
+  candidates: AiTodayCandidate[],
+  todayKey: string,
+  language: Language
+): string => AI_TODAY3_PROMPT_TEMPLATE
+  .replaceAll('{{TODAY_KEY}}', todayKey)
+  .replaceAll('{{LANGUAGE}}', language)
+  .replaceAll('{{CANDIDATES_JSON}}', JSON.stringify(candidates));
+
+const parseAiToday3 = (rawText: string, candidateIds: Set<string>): AiTodayResult | null => {
+  if (!rawText) return null;
+  let payload = rawText.trim();
+  if (!payload.startsWith('{')) {
+    const start = payload.indexOf('{');
+    const end = payload.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      payload = payload.slice(start, end + 1);
+    }
+  }
+  try {
+    const parsed = JSON.parse(payload) as {
+      picks?: Array<{
+        id?: string;
+        reasonJa?: string;
+        reasonEn?: string;
+        first5minJa?: string;
+        first5minEn?: string;
+      }>;
+      noteJa?: string;
+      noteEn?: string;
+    };
+    if (!Array.isArray(parsed.picks) || parsed.picks.length === 0 || parsed.picks.length > 3) {
+      return null;
+    }
+    if (typeof parsed.noteJa !== 'string' || typeof parsed.noteEn !== 'string') {
+      return null;
+    }
+    const seen = new Set<string>();
+    const picks = parsed.picks.map((pick) => {
+      const id = typeof pick.id === 'string' ? pick.id.trim() : '';
+      const reasonJa = typeof pick.reasonJa === 'string' ? pick.reasonJa.trim() : '';
+      const reasonEn = typeof pick.reasonEn === 'string' ? pick.reasonEn.trim() : '';
+      const first5minJa = typeof pick.first5minJa === 'string' ? pick.first5minJa.trim() : '';
+      const first5minEn = typeof pick.first5minEn === 'string' ? pick.first5minEn.trim() : '';
+      if (
+        !id
+        || !candidateIds.has(id)
+        || seen.has(id)
+        || !reasonJa
+        || !reasonEn
+        || !first5minJa
+        || !first5minEn
+      ) {
+        return null;
+      }
+      seen.add(id);
+      return {
+        id,
+        reasonJa,
+        reasonEn,
+        first5minJa,
+        first5minEn,
+      } satisfies AiTodayPick;
+    });
+    if (picks.some((pick) => pick === null)) return null;
+    return {
+      picks: picks as AiTodayPick[],
+      noteJa: parsed.noteJa.trim(),
+      noteEn: parsed.noteEn.trim(),
+    };
+  } catch {
+    return null;
+  }
+};
+
 const parseAiBreakdown = (rawText: string): AiStep[] | null => {
   if (!rawText) return null;
   let payload = rawText.trim();
@@ -379,6 +475,10 @@ function App() {
   const [aiBreakdownSteps, setAiBreakdownSteps] = useState<AiStep[] | null>(null);
   const [aiBreakdownLoading, setAiBreakdownLoading] = useState(false);
   const [aiBreakdownError, setAiBreakdownError] = useState<string | null>(null);
+  const [aiTodayOpen, setAiTodayOpen] = useState(false);
+  const [aiTodayResult, setAiTodayResult] = useState<AiTodayResult | null>(null);
+  const [aiTodayLoading, setAiTodayLoading] = useState(false);
+  const [aiTodayError, setAiTodayError] = useState<string | null>(null);
   const forcedWarningRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -807,6 +907,135 @@ function App() {
     snoozeTodo(id, formatDateKey(nextDate));
   }, [snoozeTodo]);
 
+  const closeAiToday = useCallback(() => {
+    setAiTodayOpen(false);
+    setAiTodayResult(null);
+    setAiTodayError(null);
+    setAiTodayLoading(false);
+  }, []);
+
+  const runAiToday3 = useCallback(async () => {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+      setToast('APIキーを設定してください');
+      setShowSettingsModal(true);
+      return;
+    }
+
+    const todayKey = formatDateKey(new Date());
+    const isSnoozed = (todo: Todo) =>
+      Boolean(todo.snoozeUntil && todo.snoozeUntil > todayKey);
+    const now = new Date();
+    const candidates: AiTodayCandidate[] = todos
+      .filter((todo) =>
+        !todo.completed
+        && !todo.isToday
+        && !todo.isSecret
+        && !isSnoozed(todo)
+      )
+      .map((todo) => {
+        const candidate: AiTodayCandidate = {
+          id: todo.id,
+          title: todo.text,
+          kind: todo.kind,
+          priorityScore: priorityScore(todo, now),
+        };
+        if (todo.deadlineAt) {
+          candidate.deadlineAt = todo.deadlineAt;
+        }
+        if (typeof todo.deferCount === 'number') {
+          candidate.deferCount = todo.deferCount;
+        }
+        return candidate;
+      });
+
+    if (candidates.length === 0) {
+      setToast('候補がありません');
+      return;
+    }
+
+    setAiTodayOpen(true);
+    setAiTodayLoading(true);
+    setAiTodayError(null);
+    setAiTodayResult(null);
+
+    try {
+      const prompt = buildAiTodayPrompt(candidates, todayKey, language);
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.2,
+            },
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        const message = String(data?.error?.message ?? '');
+        const lowered = message.toLowerCase();
+        const isAuthError = response.status === 401
+          || response.status === 403
+          || lowered.includes('api key')
+          || lowered.includes('apikey');
+        if (isAuthError) {
+          setAiTodayError('APIキーを確認してください');
+          setToast('APIキーを確認してください');
+          return;
+        }
+        throw new Error(message || 'Gemini request failed');
+      }
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const result = parseAiToday3(text, new Set(candidates.map((item) => item.id)));
+      if (!result) {
+        const message = 'AIの結果を解釈できませんでした。再試行してください';
+        setAiTodayError(message);
+        setToast(message);
+        return;
+      }
+      setAiTodayResult(result);
+    } catch {
+      setAiTodayError('AIの取得に失敗しました');
+      setToast('AIの取得に失敗しました');
+    } finally {
+      setAiTodayLoading(false);
+    }
+  }, [language, setShowSettingsModal, setToast, todos]);
+
+  const handleApplyAiToday = useCallback(() => {
+    if (!aiTodayResult || aiTodayResult.picks.length === 0) return;
+    const todoMap = new Map(todos.map((todo) => [todo.id, todo]));
+    const hasMissing = aiTodayResult.picks.some((pick) => !todoMap.has(pick.id));
+    if (hasMissing) {
+      setToast('AIの結果を解釈できませんでした。再試行してください');
+      return;
+    }
+
+    todos.forEach((todo) => {
+      if (todo.isToday && !todo.completed) {
+        setTodoToday(todo.id, false);
+      }
+    });
+    aiTodayResult.picks.forEach((pick) => {
+      const target = todoMap.get(pick.id);
+      if (target && !target.completed) {
+        setTodoToday(target.id, true);
+      }
+    });
+    closeAiToday();
+  }, [aiTodayResult, closeAiToday, setTodoToday, setToast, todos]);
+
+  const handleRetryAiToday = useCallback(() => {
+    runAiToday3();
+  }, [runAiToday3]);
+
   const closeAiBreakdown = useCallback(() => {
     setAiBreakdownTodo(null);
     setAiBreakdownSteps(null);
@@ -1099,9 +1328,21 @@ function App() {
             <h2 className="text-sm font-bold text-text-sub">
               今日3つ
             </h2>
-            <p className="text-xs text-text-muted">
-              最終更新: {formatTimeAgo(lastActivityAt)}
-            </p>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                type="button"
+                onClick={runAiToday3}
+                disabled={aiTodayLoading}
+                className="min-h-[32px] px-3 rounded-full border text-xs font-semibold
+                  border-brand-mint text-brand-mint hover:bg-brand-mint/10
+                  transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                AIで今日3つ確定
+              </button>
+              <p className="text-xs text-text-muted">
+                最終更新: {formatTimeAgo(lastActivityAt)}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -1225,6 +1466,105 @@ function App() {
         onClose={() => setShowGuide(false)}
         language={language}
       />
+
+      {aiTodayOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={closeAiToday}
+        >
+          <div
+            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-text-main">AIで今日3つ確定</h2>
+              <button
+                onClick={closeAiToday}
+                className="tap-target p-2 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-text-sub" />
+              </button>
+            </div>
+
+            {aiTodayLoading && (
+              <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
+                <div
+                  className="w-5 h-5 border-2 border-brand-mint border-t-transparent
+                    rounded-full animate-spin"
+                />
+                選定中...
+              </div>
+            )}
+
+            {aiTodayError && (
+              <div className="mb-4">
+                <p className="text-sm text-text-sub mb-2">{aiTodayError}</p>
+                <button
+                  type="button"
+                  onClick={handleRetryAiToday}
+                  className="min-h-[36px] px-3 rounded-full border border-border-light
+                    text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                >
+                  再試行
+                </button>
+              </div>
+            )}
+
+            {aiTodayResult && (
+              <div className="space-y-3">
+                {(language === 'ja' ? aiTodayResult.noteJa : aiTodayResult.noteEn) && (
+                  <p className="text-xs text-text-muted">
+                    {language === 'ja' ? aiTodayResult.noteJa : aiTodayResult.noteEn}
+                  </p>
+                )}
+                {aiTodayResult.picks.map((pick) => {
+                  const target = todos.find((todo) => todo.id === pick.id);
+                  const reason = language === 'ja' ? pick.reasonJa : pick.reasonEn;
+                  const first5min = language === 'ja' ? pick.first5minJa : pick.first5minEn;
+                  return (
+                    <div
+                      key={pick.id}
+                      className="p-3 bg-bg-soft rounded-lg text-sm text-text-main space-y-1"
+                    >
+                      <p className="font-semibold">
+                        {target?.text ?? pick.id}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {reason}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {first5min}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={closeAiToday}
+                className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
+                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyAiToday}
+                disabled={!aiTodayResult || aiTodayLoading}
+                className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
+                  hover:bg-main-deep transition-colors disabled:bg-border-light
+                  disabled:cursor-not-allowed"
+              >
+                適用
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {aiBreakdownTodo && (
         <div
