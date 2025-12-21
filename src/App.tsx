@@ -576,9 +576,9 @@ function App() {
                   secretLongPressDelay={secretLongPressDelay}
                 />
               ))
-            ) : hasVisibleTodos ? (
+            ) : (
               <p className="text-sm text-text-muted py-2">今日のタスクはありません</p>
-            ) : null}
+            )}
           </div>
         </div>
 
