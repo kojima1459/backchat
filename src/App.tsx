@@ -272,7 +272,6 @@ function App() {
   const [inboxText, setInboxText] = useState('');
   const [autoSortBacklog, setAutoSortBacklog] = useState(resolveAutoSort);
   const forcedWarningRef = useRef<string | null>(null);
-  const [continueArmed, setContinueArmed] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -376,23 +375,11 @@ function App() {
   }, [activeTimer]);
 
   useEffect(() => {
-    if (!showTimerPrompt) return;
-    setContinueArmed(false);
-  }, [showTimerPrompt]);
-
-  useEffect(() => {
-    if (!continueArmed) return;
-    const timeoutId = window.setTimeout(() => setContinueArmed(false), 3000);
-    return () => window.clearTimeout(timeoutId);
-  }, [continueArmed]);
-
-  useEffect(() => {
     if (!activeTimer) return;
     const target = todos.find((todo) => todo.id === activeTimer.todoId);
     if (!target || target.completed || !target.isToday) {
       setActiveTimer(null);
       setShowTimerPrompt(false);
-      setContinueArmed(false);
     }
   }, [activeTimer, todos]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -527,13 +514,11 @@ function App() {
   const handleStartTimer = useCallback((id: string) => {
     setActiveTimer({ todoId: id, endsAt: Date.now() + START_PHASE_MS, phase: 'start' });
     setShowTimerPrompt(false);
-    setContinueArmed(false);
   }, []);
 
   const handleStopTimer = useCallback(() => {
     setActiveTimer(null);
     setShowTimerPrompt(false);
-    setContinueArmed(false);
   }, []);
 
   const handleCompleteFromTimer = useCallback(() => {
@@ -544,7 +529,6 @@ function App() {
     }
     setActiveTimer(null);
     setShowTimerPrompt(false);
-    setContinueArmed(false);
   }, [activeTimer, todos, toggleTodo]);
 
   const handleContinueTimer = useCallback(() => {
@@ -555,7 +539,6 @@ function App() {
     const duration = activeTimer.phase === 'start' ? FOCUS_PHASE_MS : FOCUS_PHASE_MS;
     setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + duration, phase: nextPhase });
     setShowTimerPrompt(false);
-    setContinueArmed(false);
   }, [activeTimer]);
 
   const handlePrimaryTimerAction = useCallback(() => {
@@ -563,12 +546,10 @@ function App() {
     if (activeTimer.phase === 'focus') {
       setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + REST_PHASE_MS, phase: 'rest' });
       setShowTimerPrompt(false);
-      setContinueArmed(false);
       return;
     }
     setActiveTimer(null);
     setShowTimerPrompt(false);
-    setContinueArmed(false);
   }, [activeTimer]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -923,8 +904,8 @@ function App() {
           {sortedBacklogTodos.length > 0 ? (
             sortedBacklogTodos.map((todo) => {
               const index = backlogActiveIds.indexOf(todo.id);
-              const canMoveUp = index > 0;
-              const canMoveDown = index !== -1 && index < backlogActiveIds.length - 1;
+              const canMoveUp = !autoSortBacklog && index > 0;
+              const canMoveDown = !autoSortBacklog && index !== -1 && index < backlogActiveIds.length - 1;
               const canSnooze = !todo.completed;
               return (
                 <TodoItem
@@ -1067,16 +1048,14 @@ function App() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!continueArmed) {
-                    setContinueArmed(true);
-                    return;
+                  if (window.confirm('続けますか？')) {
+                    handleContinueTimer();
                   }
-                  handleContinueTimer();
                 }}
                 className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
                   text-text-sub font-medium hover:bg-gray-100 transition-colors"
               >
-                {continueArmed ? '続ける（もう一度）' : '続ける'}
+                続ける
               </button>
             </div>
           </div>
