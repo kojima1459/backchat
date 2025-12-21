@@ -166,12 +166,12 @@ export const JoinRoomModal = ({
         >
           <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-text-main">共有に同期する</h2>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-text-sub" />
-            </button>
+          <button
+            onClick={onClose}
+            className="tap-target p-2 hover:bg-gray-100 transition-colors"
+          >
+            <X className="w-5 h-5 text-text-sub" />
+          </button>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -212,9 +212,9 @@ export const JoinRoomModal = ({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
                     border border-border-light rounded-lg text-sm text-text-sub
-                    hover:bg-gray-100 transition-colors"
+                    hover:bg-gray-100 transition-colors active:opacity-90 active:scale-[0.98]"
                 >
                   {copied ? (
                     <Check className="w-4 h-4 text-success" />
@@ -226,9 +226,9 @@ export const JoinRoomModal = ({
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
                     border border-border-light rounded-lg text-sm text-text-sub
-                    hover:bg-gray-100 transition-colors"
+                    hover:bg-gray-100 transition-colors active:opacity-90 active:scale-[0.98]"
                 >
                   <Share2 className="w-4 h-4" />
                   共有
@@ -236,9 +236,9 @@ export const JoinRoomModal = ({
                 <button
                   type="button"
                   onClick={() => setIsQrOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
+                  className="flex-1 min-h-[44px] flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
                     border border-border-light rounded-lg text-sm text-text-sub
-                    hover:bg-gray-100 transition-colors"
+                    hover:bg-gray-100 transition-colors active:opacity-90 active:scale-[0.98]"
                 >
                   <QrCode className="w-4 h-4" />
                   QR
@@ -310,7 +310,7 @@ export const JoinRoomModal = ({
             <h3 className="text-lg font-bold text-text-main">QRで共有</h3>
               <button
                 onClick={() => setIsQrOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="tap-target p-2 hover:bg-gray-100 transition-colors"
               >
                 <X className="w-5 h-5 text-text-sub" />
               </button>

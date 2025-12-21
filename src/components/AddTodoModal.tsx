@@ -44,7 +44,7 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
           <h2 className="text-lg font-bold text-text-main">新しいタスク</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="tap-target p-2 hover:bg-gray-100 transition-colors"
           >
             <X className="w-5 h-5 text-text-sub" />
           </button>

@@ -168,7 +168,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
         <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2 px-4 py-3">
           <button
             onClick={handleExit}
-            className="text-sm font-semibold text-text-sub hover:text-text-main transition-colors"
+            className="tap-target text-sm font-semibold text-text-sub hover:text-text-main transition-colors"
           >
             ← 戻る
           </button>
@@ -188,7 +188,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
           <div className="relative flex justify-end">
             <button
               onClick={openActions}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="tap-target p-2 hover:bg-gray-100 transition-colors"
             >
               <MoreVertical className="w-6 h-6 text-text-sub" />
             </button>
@@ -234,7 +234,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
           <button
             onClick={handleSend}
             disabled={!inputText.trim() || isSending}
-            className="p-2.5 bg-brand-mint rounded-full
+            className="tap-target p-2.5 bg-brand-mint rounded-full
               hover:bg-main-deep transition-colors
               disabled:bg-border-light disabled:cursor-not-allowed"
           >
@@ -257,7 +257,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
               <h2 className="text-lg font-bold text-text-main">共有操作</h2>
               <button
                 onClick={closeActions}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="tap-target p-2 hover:bg-gray-100 transition-colors"
               >
                 <X className="w-5 h-5 text-text-sub" />
               </button>
@@ -339,7 +339,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
               <h2 className="text-lg font-bold text-text-main">ひとこと</h2>
               <button
                 onClick={() => setIsLabelEditorOpen(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="tap-target p-2 hover:bg-gray-100 transition-colors"
               >
                 <X className="w-5 h-5 text-text-sub" />
               </button>

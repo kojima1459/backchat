@@ -57,7 +57,7 @@ export const Header = ({ onSettingsClick, onSecretLongPress, secretLongPressDela
         </h1>
         <button
           onClick={onSettingsClick}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="tap-target p-2 hover:bg-gray-100 transition-colors"
           aria-label="設定"
         >
           <Settings className="w-6 h-6 text-text-sub" strokeWidth={1.75} />
