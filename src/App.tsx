@@ -49,6 +49,13 @@ const MEETING_MATERIALS_STEPS = [
   '④ 1枚ドラフト（15分）',
   '⑤ 送付・共有（5分）',
 ];
+const FAMILY_EVENT_STEPS = [
+  '① 日時を確定して連絡（5分）',
+  '② 予約・チケット（10分）',
+  '③ 持ち物チェック（5分）',
+  '④ 移動・集合確認（5分）',
+  '⑤ 当日リマインド文を作る（5分）',
+];
 
 const resolveThemeSetting = (): ThemeSetting => {
   if (typeof window === 'undefined') return 'system';
@@ -301,6 +308,10 @@ function App() {
     }
     if (type === 'meetingMaterials') {
       addTodos([text, ...MEETING_MATERIALS_STEPS]);
+      return;
+    }
+    if (type === 'familyEvent') {
+      addTodos([text, ...FAMILY_EVENT_STEPS]);
       return;
     }
     addTodo(text);
