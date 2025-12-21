@@ -6,7 +6,7 @@ import { generateRoomKey, validateRoomKey } from '../services/roomKey';
 interface JoinRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJoin: (roomKey: string) => void;
+  onJoin: (roomKey: string, label: string) => void;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -19,6 +19,7 @@ export const JoinRoomModal = ({
   error = null 
 }: JoinRoomModalProps) => {
   const [roomKey, setRoomKey] = useState('');
+  const [roomLabel, setRoomLabel] = useState('');
   const [copied, setCopied] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(false);
@@ -31,6 +32,7 @@ export const JoinRoomModal = ({
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomKey('');
+      setRoomLabel('');
       setLocalError(null);
       setCopied(false);
       setIsQrOpen(false);
@@ -146,7 +148,7 @@ export const JoinRoomModal = ({
     setCooldown(true);
     setTimeout(() => setCooldown(false), 5000);
     
-    onJoin(roomKey);
+    onJoin(roomKey, roomLabel.trim());
   };
 
   if (!isOpen) return null;
@@ -195,7 +197,18 @@ export const JoinRoomModal = ({
             </div>
 
             {roomKey.trim().length > 0 && (
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 space-y-3">
+                <input
+                  type="text"
+                  value={roomLabel}
+                  onChange={(e) => setRoomLabel(e.target.value.slice(0, 20))}
+                  placeholder="ひとこと（任意）"
+                  className="w-full px-4 py-2.5 bg-bg-soft border border-border-light rounded-lg
+                    text-text-main placeholder:text-text-muted text-sm
+                    focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20
+                    transition-all"
+                />
+                <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleCopy}
@@ -230,6 +243,7 @@ export const JoinRoomModal = ({
                   <QrCode className="w-4 h-4" />
                   QR
                 </button>
+                </div>
               </div>
             )}
             

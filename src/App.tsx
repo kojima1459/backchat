@@ -19,6 +19,7 @@ import { useTodos } from './hooks/useTodos';
 import { useAuth } from './contexts/AuthContext';
 import { joinRoom, getRoom } from './services/room';
 import type { JoinRoomErrorCode } from './services/room';
+import { setRoomLabel } from './services/roomLabel';
 
 type Screen = 'home' | 'chat';
 type Theme = 'mint' | 'mono';
@@ -224,7 +225,7 @@ function App() {
 
   // ルーム参加
   // [リファクタ B-3] 依存配列にisOnlineを追加して常に最新の状態で判定
-  const handleJoinRoom = useCallback(async (roomKey: string) => {
+  const handleJoinRoom = useCallback(async (roomKey: string, label: string) => {
     if (!uid) {
       setJoinError('認証に失敗しました。再読み込みしてください。');
       return;
@@ -246,6 +247,9 @@ function App() {
       setCurrentRoomId(result.roomId);
       setLastRoomId(result.roomId);
       localStorage.setItem(LAST_ROOM_STORAGE_KEY, result.roomId);
+      if (label) {
+        setRoomLabel(result.roomId, label);
+      }
       setShowJoinModal(false);
       setCurrentScreen('chat');
       if (result.isNew) {
