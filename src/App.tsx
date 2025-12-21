@@ -17,7 +17,7 @@ import { ChatRoom } from './components/ChatRoom';
 import { Toast, getRandomPositiveMessage } from './components/Toast';
 import { useTodos } from './hooks/useTodos';
 import { useAuth } from './contexts/AuthContext';
-import { joinRoom } from './services/room';
+import { joinRoom, getRoom } from './services/room';
 import type { JoinRoomErrorCode } from './services/room';
 
 type Screen = 'home' | 'chat';
@@ -31,6 +31,7 @@ const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
 
 const THEME_STORAGE_KEY = 'theme';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
+const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
 
 const resolveTheme = (): Theme => {
@@ -43,6 +44,25 @@ const resolveLongPressDelay = (): number => {
   if (typeof window === 'undefined') return 5000;
   const stored = Number(localStorage.getItem(LONG_PRESS_STORAGE_KEY));
   return LONG_PRESS_OPTIONS.includes(stored) ? stored : 5000;
+};
+
+const resolveLastRoomId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(LAST_ROOM_STORAGE_KEY);
+};
+
+const formatTimeAgo = (date: Date | null): string => {
+  if (!date || Number.isNaN(date.getTime())) return '—';
+
+  const diffMs = Math.max(0, Date.now() - date.getTime());
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 60) return `${minutes}分前`;
+
+  const hours = Math.floor(diffMs / 3600000);
+  if (hours < 24) return `${hours}時間前`;
+
+  const days = Math.floor(diffMs / 86400000);
+  return `${days}日前`;
 };
 
 function App() {
@@ -72,6 +92,8 @@ function App() {
   const previousOnlineRef = useRef(isOnline);
   const [theme] = useState<Theme>(resolveTheme);
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
+  const [lastRoomId, setLastRoomId] = useState(resolveLastRoomId);
+  const [lastActivityAt, setLastActivityAt] = useState<Date | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -81,6 +103,36 @@ function App() {
   useEffect(() => {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
   }, [secretLongPressDelay]);
+
+  useEffect(() => {
+    if (!lastRoomId || currentScreen !== 'home') {
+      setLastActivityAt(null);
+      return;
+    }
+
+    let isActive = true;
+    getRoom(lastRoomId)
+      .then((room) => {
+        if (!isActive) return;
+        if (!room) {
+          setLastActivityAt(null);
+          return;
+        }
+
+        const updatedAt = room.updatedAt?.toDate?.() ?? null;
+        const lastMessageAt = room.lastMessageAt?.toDate?.() ?? null;
+        setLastActivityAt(updatedAt || lastMessageAt);
+      })
+      .catch(() => {
+        if (isActive) {
+          setLastActivityAt(null);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [lastRoomId, currentScreen]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -190,6 +242,8 @@ function App() {
     
     if (result.success) {
       setCurrentRoomId(result.roomId);
+      setLastRoomId(result.roomId);
+      localStorage.setItem(LAST_ROOM_STORAGE_KEY, result.roomId);
       setShowJoinModal(false);
       setCurrentScreen('chat');
       if (result.isNew) {
@@ -278,9 +332,14 @@ function App() {
       
       {/* メインコンテンツ */}
       <main className="px-4 pb-24">
-        <h2 className="text-sm font-bold text-text-sub mb-3 mt-2">
-          今日のやること
-        </h2>
+        <div className="flex items-end justify-between mb-3 mt-2">
+          <h2 className="text-sm font-bold text-text-sub">
+            今日のやること
+          </h2>
+          <p className="text-xs text-text-muted">
+            最終更新: {formatTimeAgo(lastActivityAt)}
+          </p>
+        </div>
         
         <div className="space-y-2">
           {todos.map((todo) => (
