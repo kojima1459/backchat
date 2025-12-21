@@ -19,7 +19,7 @@ import { useTodos } from './hooks/useTodos';
 import { useAuth } from './contexts/AuthContext';
 import { joinRoom, getRoom } from './services/room';
 import type { JoinRoomErrorCode } from './services/room';
-import type { Todo } from './types/todo';
+import type { Todo, TodoKind } from './types/todo';
 import { setRoomLabel } from './services/roomLabel';
 import type { Language } from './i18n';
 
@@ -175,6 +175,17 @@ const parseDeadlineFromText = (text: string, baseDate: Date): string | null => {
   return null;
 };
 
+const parseKindFromText = (text: string): { text: string; kind?: TodoKind } => {
+  const trimmed = text.trim();
+  const match = trimmed.match(/^(返信|支払い)[:：]\s*(.+)$/);
+  if (match) {
+    const kind = match[1] === '返信' ? 'reply' : 'payment';
+    const cleaned = match[2].trim();
+    return cleaned ? { text: cleaned, kind } : { text: trimmed, kind };
+  }
+  return { text: trimmed };
+};
+
 const parseDeadlineDate = (deadlineAt: string): Date | null => {
   const match = deadlineAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
@@ -226,7 +237,7 @@ const priorityScore = (todo: Todo, now: Date): number => {
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
-  const { todos, addTodo, addTodos, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
+  const { todos, addTodos, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
   
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
@@ -258,6 +269,7 @@ function App() {
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
   const [inboxText, setInboxText] = useState('');
   const [autoSortBacklog, setAutoSortBacklog] = useState(resolveAutoSort);
+  const forcedWarningRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -524,21 +536,91 @@ function App() {
     setShowTimerPrompt(false);
   }, []);
 
-  const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const currentDayKey = formatDateKey(new Date());
+    const isSnoozed = (todo: Todo) =>
+      Boolean(todo.snoozeUntil && todo.snoozeUntil > currentDayKey);
+    const candidates = todos.filter((todo) =>
+      !todo.completed
+      && !todo.isSecret
+      && !isSnoozed(todo)
+      && (todo.kind === 'reply' || todo.kind === 'payment')
+    );
+    if (candidates.length === 0) return;
+
+    const todayAll = todos.filter((todo) => todo.isToday);
+    const todayCandidates = todayAll.filter((todo) =>
+      (todo.kind === 'reply' || todo.kind === 'payment') && !todo.completed
+    );
+    const now = new Date();
+    const pickHighest = (items: Todo[]) =>
+      items.reduce((best, item) => (
+        priorityScore(item, now) > priorityScore(best, now) ? item : best
+      ));
+    const pickLowest = (items: Todo[]) =>
+      items.reduce((worst, item) => (
+        priorityScore(item, now) < priorityScore(worst, now) ? item : worst
+      ));
+
+    if (todayCandidates.length > 0) {
+      if (todayCandidates.length > 1) {
+        const keep = pickHighest(todayCandidates);
+        todayCandidates.forEach((todo) => {
+          if (todo.id !== keep.id) {
+            setTodoToday(todo.id, false);
+          }
+        });
+      }
+      return;
+    }
+
+    if (todayAll.length < 3) {
+      const pick = pickHighest(candidates);
+      setTodoToday(pick.id, true);
+      return;
+    }
+
+    const todayIncomplete = todayAll.filter((todo) => !todo.completed);
+    if (todayIncomplete.length === 0) {
+      if (forcedWarningRef.current !== currentDayKey) {
+        setToast('今日は3つまで');
+        forcedWarningRef.current = currentDayKey;
+      }
+      return;
+    }
+
+    const removeTarget = pickLowest(todayIncomplete);
+    const pick = pickHighest(candidates);
+    setTodoToday(removeTarget.id, false);
+    setTodoToday(pick.id, true);
+  }, [todos, setTodoToday, setToast]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const handleAddTodo = useCallback((text: string, type: TodoCreateType, kind: TodoKind) => {
     if (type === 'workPlan') {
-      addTodos([text, ...WORK_PLAN_STEPS]);
+      addTodos([
+        { text, kind: 'work_plan' },
+        ...WORK_PLAN_STEPS.map((step) => ({ text: step })),
+      ]);
       return;
     }
     if (type === 'meetingMaterials') {
-      addTodos([text, ...MEETING_MATERIALS_STEPS]);
+      addTodos([
+        { text, kind },
+        ...MEETING_MATERIALS_STEPS.map((step) => ({ text: step })),
+      ]);
       return;
     }
     if (type === 'familyEvent') {
-      addTodos([text, ...FAMILY_EVENT_STEPS]);
+      addTodos([
+        { text, kind },
+        ...FAMILY_EVENT_STEPS.map((step) => ({ text: step })),
+      ]);
       return;
     }
-    addTodo(text);
-  }, [addTodo, addTodos]);
+    addTodos([{ text, kind }]);
+  }, [addTodos]);
 
   const handleInboxSubmit = useCallback((event: React.FormEvent) => {
     event.preventDefault();
@@ -548,10 +630,14 @@ function App() {
       .filter(Boolean);
     if (lines.length === 0) return;
     const baseDate = new Date();
-    const inputs = lines.map((line) => ({
-      text: line,
-      deadlineAt: parseDeadlineFromText(line, baseDate) ?? undefined,
-    }));
+    const inputs = lines.map((line) => {
+      const parsedKind = parseKindFromText(line);
+      return {
+        text: parsedKind.text,
+        kind: parsedKind.kind,
+        deadlineAt: parseDeadlineFromText(parsedKind.text, baseDate) ?? undefined,
+      };
+    });
     addTodos(inputs);
     setInboxText('');
   }, [addTodos, inboxText]);

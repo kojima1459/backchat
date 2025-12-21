@@ -1,3 +1,5 @@
+export type TodoKind = 'normal' | 'work_plan' | 'reply' | 'payment';
+
 export interface Todo {
   id: string;
   text: string;
@@ -9,11 +11,13 @@ export interface Todo {
   deferCount?: number;
   snoozeUntil?: string;
   deadlineAt?: string;
+  kind?: TodoKind;
 }
 
 export interface TodoInput {
   text: string;
   deadlineAt?: string;
+  kind?: TodoKind;
 }
 
 export interface Room {

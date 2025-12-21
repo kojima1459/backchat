@@ -110,6 +110,7 @@ export const useTodos = () => {
         createdAt: timestamp + (normalized.length - index),
         order: nextOrder === null ? undefined : nextOrder + index,
         deadlineAt: input.deadlineAt,
+        kind: input.kind,
       }));
       // シークレットタスクの後に追加
       const secretIndex = prev.findIndex(t => t.isSecret);

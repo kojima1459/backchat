@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
+import type { TodoKind } from '../types/todo';
 
 export type TodoCreateType = 'normal' | 'workPlan' | 'meetingMaterials' | 'familyEvent';
 
 interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (text: string, type: TodoCreateType) => void;
+  onAdd: (text: string, type: TodoCreateType, kind: TodoKind) => void;
 }
 
 export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
   const [text, setText] = useState('');
   const [taskType, setTaskType] = useState<TodoCreateType>('normal');
+  const [kind, setKind] = useState<TodoKind>('normal');
   const inputRef = useRef<HTMLInputElement>(null);
   const typeOptions: Array<{ value: TodoCreateType; label: string }> = [
     { value: 'normal', label: '通常' },
@@ -19,12 +21,18 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
     { value: 'meetingMaterials', label: '打ち合わせ資料' },
     { value: 'familyEvent', label: '家族イベント' },
   ];
+  const kindOptions: Array<{ value: TodoKind; label: string }> = [
+    { value: 'normal', label: '通常' },
+    { value: 'reply', label: '返信' },
+    { value: 'payment', label: '支払い' },
+  ];
 
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setText('');
       setTaskType('normal');
+      setKind('normal');
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
@@ -32,7 +40,7 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onAdd(text.trim(), taskType);
+      onAdd(text.trim(), taskType, kind);
       setText('');
       onClose();
     }
@@ -71,6 +79,29 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
                     key={option.value}
                     type="button"
                     onClick={() => setTaskType(option.value)}
+                    className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium
+                      transition-colors
+                      ${isActive
+                        ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                        : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="mb-4">
+            <div className="text-xs text-text-muted mb-2">カテゴリ</div>
+            <div className="grid grid-cols-3 gap-2">
+              {kindOptions.map((option) => {
+                const isActive = kind === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setKind(option.value)}
                     className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium
                       transition-colors
                       ${isActive
