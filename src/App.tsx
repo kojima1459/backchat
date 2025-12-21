@@ -381,6 +381,10 @@ function App() {
     );
   }
 
+  const todayTodos = todos.filter((todo) => todo.isToday);
+  const backlogTodos = todos.filter((todo) => !todo.isToday);
+  const hasVisibleTodos = todos.some((todo) => !todo.isSecret);
+
   // ホーム画面（ToDo）
   return (
     <div className="min-h-screen bg-bg-soft">
@@ -401,28 +405,54 @@ function App() {
       
       {/* メインコンテンツ */}
       <main className="px-4 pb-24">
-        <div className="flex items-end justify-between mb-3 mt-2">
+        <div className="flex items-end justify-between mb-2 mt-2">
           <h2 className="text-sm font-bold text-text-sub">
-            今日のやること
+            今日
           </h2>
           <p className="text-xs text-text-muted">
             最終更新: {formatTimeAgo(lastActivityAt)}
           </p>
         </div>
-        
+
         <div className="space-y-2">
-          {todos.map((todo) => (
-            <TodoItem
-              key={todo.id}
-              todo={todo}
-              onToggle={handleToggle}
-              onDelete={deleteTodo}
-              secretLongPressDelay={secretLongPressDelay}
-            />
-          ))}
+          {todayTodos.length > 0 ? (
+            todayTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={handleToggle}
+                onDelete={deleteTodo}
+                secretLongPressDelay={secretLongPressDelay}
+              />
+            ))
+          ) : hasVisibleTodos ? (
+            <p className="text-sm text-text-muted py-2">今日のタスクはありません</p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between mt-6 mb-2">
+          <h2 className="text-sm font-bold text-text-sub">
+            バックログ
+          </h2>
+        </div>
+
+        <div className="space-y-2">
+          {backlogTodos.length > 0 ? (
+            backlogTodos.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                onToggle={handleToggle}
+                onDelete={deleteTodo}
+                secretLongPressDelay={secretLongPressDelay}
+              />
+            ))
+          ) : hasVisibleTodos ? (
+            <p className="text-sm text-text-muted py-2">バックログは空です</p>
+          ) : null}
         </div>
         
-        {todos.filter(t => !t.isSecret).length === 0 && (
+        {!hasVisibleTodos && (
           <div className="text-center py-12">
             <p className="text-text-muted">タスクがありません</p>
             <p className="text-sm text-text-muted mt-1">

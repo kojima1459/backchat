@@ -4,6 +4,7 @@ export interface Todo {
   completed: boolean;
   createdAt: number;
   isSecret?: boolean; // 裏モード用のダミータスクかどうか
+  isToday?: boolean;
 }
 
 export interface Room {
