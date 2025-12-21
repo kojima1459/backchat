@@ -79,10 +79,11 @@ export const JoinRoomModal = ({
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Room Key', text: roomKey });
+        return;
       } catch {
-        // 共有のキャンセルなどは無視
+        await handleCopy();
+        return;
       }
-      return;
     }
 
     await handleCopy();
@@ -173,7 +174,7 @@ export const JoinRoomModal = ({
 
           <form onSubmit={handleSubmit}>
             {/* ルームキー入力 */}
-            <div className="relative">
+            <div>
               <input
                 ref={inputRef}
                 type="text"
@@ -191,28 +192,28 @@ export const JoinRoomModal = ({
                     : 'border-border-light focus:border-brand-mint focus:ring-brand-mint/20'
                   }`}
               />
-              {roomKey && (
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5
-                    hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-success" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-text-muted" />
-                  )}
-                </button>
-              )}
             </div>
 
             {roomKey.trim().length > 0 && (
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
+                  onClick={handleCopy}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
+                    border border-border-light rounded-lg text-sm text-text-sub
+                    hover:bg-gray-100 transition-colors"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-success" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                  コピー
+                </button>
+                <button
+                  type="button"
                   onClick={handleShare}
-                  className="flex items-center gap-2 px-3 py-2 bg-bg-soft
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
                     border border-border-light rounded-lg text-sm text-text-sub
                     hover:bg-gray-100 transition-colors"
                 >
@@ -222,7 +223,7 @@ export const JoinRoomModal = ({
                 <button
                   type="button"
                   onClick={() => setIsQrOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 bg-bg-soft
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-bg-soft
                     border border-border-light rounded-lg text-sm text-text-sub
                     hover:bg-gray-100 transition-colors"
                 >
@@ -317,7 +318,7 @@ export const JoinRoomModal = ({
               </div>
               {!qrError && (
                 <p className="text-xs text-text-muted text-center">
-                  カメラで読み取るとキーをコピーできます
+                  カメラで読み取ってキーをコピー
                 </p>
               )}
             </div>
