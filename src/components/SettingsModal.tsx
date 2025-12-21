@@ -1,5 +1,36 @@
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { t, type Language } from '../i18n';
+import {
+  AI_PROMPT_DESCRIPTION,
+  GEMINI_API_KEY_STORAGE_KEY,
+  GEMINI_CONTEXT_STORAGE_KEY,
+} from '../constants/aiBreakdown';
+
+const safeGetItem = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('[SettingsModal] localStorage.getItem failed:', error);
+    return null;
+  }
+};
+
+const safeSetItem = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('[SettingsModal] localStorage.setItem failed:', error);
+  }
+};
+
+const safeRemoveItem = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn('[SettingsModal] localStorage.removeItem failed:', error);
+  }
+};
 
 type ThemeSetting = 'system' | 'light' | 'dark';
 
@@ -42,6 +73,32 @@ export const SettingsModal = ({
     { value: 5000, labelKey: 'longPressLong' },
     { value: 8000, labelKey: 'longPressCustom' },
   ];
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiContext, setGeminiContext] = useState('');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setGeminiApiKey(safeGetItem(GEMINI_API_KEY_STORAGE_KEY) ?? '');
+    setGeminiContext(safeGetItem(GEMINI_CONTEXT_STORAGE_KEY) ?? '');
+  }, [isOpen]);
+
+  const handleGeminiKeyChange = (value: string) => {
+    setGeminiApiKey(value);
+    if (value) {
+      safeSetItem(GEMINI_API_KEY_STORAGE_KEY, value);
+    } else {
+      safeRemoveItem(GEMINI_API_KEY_STORAGE_KEY);
+    }
+  };
+
+  const handleGeminiContextChange = (value: string) => {
+    setGeminiContext(value);
+    if (value.trim()) {
+      safeSetItem(GEMINI_CONTEXT_STORAGE_KEY, value);
+    } else {
+      safeRemoveItem(GEMINI_CONTEXT_STORAGE_KEY);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -166,6 +223,67 @@ export const SettingsModal = ({
               <span className="text-xs text-text-muted">
                 {t(language, 'valueStorageDevice')}
               </span>
+            </div>
+          </section>
+
+          <section>
+            <p className="text-xs font-semibold text-text-muted mb-2">
+              {t(language, 'sectionAi')}
+            </p>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-medium text-text-main mb-2">
+                  {t(language, 'labelGeminiKey')}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={geminiApiKey}
+                    onChange={(event) => handleGeminiKeyChange(event.target.value)}
+                    placeholder="AIza..."
+                    autoComplete="off"
+                    className="flex-1 min-h-[44px] px-3 bg-bg-soft border border-border-light rounded-lg
+                      text-sm text-text-main placeholder:text-text-muted
+                      focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20"
+                  />
+                  {geminiApiKey && (
+                    <button
+                      type="button"
+                      onClick={() => handleGeminiKeyChange('')}
+                      className="min-h-[44px] px-3 rounded-lg border border-border-light
+                        text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                    >
+                      {t(language, 'actionClear')}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-text-main mb-2">
+                  {t(language, 'labelGeminiContext')}
+                </div>
+                <textarea
+                  value={geminiContext}
+                  onChange={(event) => handleGeminiContextChange(event.target.value)}
+                  rows={3}
+                  className="w-full min-h-[44px] px-3 py-2 bg-bg-soft border border-border-light rounded-lg
+                    text-sm text-text-main placeholder:text-text-muted
+                    focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20 resize-none"
+                />
+              </div>
+              <p className="text-xs text-text-muted">
+                {t(language, 'noteGeminiDisclosure')}
+              </p>
+              <div>
+                <p className="text-xs font-semibold text-text-muted mb-2">
+                  {t(language, 'labelGeminiPolicy')}
+                </p>
+                <div className="p-3 bg-bg-soft rounded-lg text-xs text-text-sub whitespace-pre-wrap
+                  max-h-48 overflow-y-auto"
+                >
+                  {AI_PROMPT_DESCRIPTION}
+                </div>
+              </div>
             </div>
           </section>
 

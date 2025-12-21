@@ -24,6 +24,12 @@ const DICTIONARY = {
     longPressCustom: 'カスタム',
     kindReply: '返信',
     kindPayment: '支払い',
+    sectionAi: 'AI',
+    labelGeminiKey: 'Gemini APIキー',
+    labelGeminiContext: '自分の文脈（任意）',
+    labelGeminiPolicy: 'AI段取り分解はこの方針で動きます',
+    noteGeminiDisclosure: '入力したタスク文言はGeminiに送信されます（キーも端末内保存）',
+    actionClear: 'クリア',
   },
   en: {
     settingsTitle: 'Settings',
@@ -48,6 +54,12 @@ const DICTIONARY = {
     longPressCustom: 'Custom',
     kindReply: 'Reply',
     kindPayment: 'Pay',
+    sectionAi: 'AI',
+    labelGeminiKey: 'Gemini API Key',
+    labelGeminiContext: 'Personal context (optional)',
+    labelGeminiPolicy: 'AI breakdown follows this policy',
+    noteGeminiDisclosure: 'Task text is sent to Gemini (key stored on device)',
+    actionClear: 'Clear',
   },
 } as const;
 
