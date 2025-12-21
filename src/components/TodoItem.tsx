@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Trash2, Video } from 'lucide-react';
 import type { Todo } from '../types/todo';
 import { useLongPress } from '../hooks/useLongPress';
+import type { Language } from '../i18n';
 
 interface TodoItemProps {
   todo: Todo;
@@ -14,6 +15,7 @@ interface TodoItemProps {
   onMoveDown?: () => void;
   onSnoozeTomorrow?: () => void;
   onSnoozeNextWeek?: () => void;
+  language: Language;
   secretLongPressDelay?: number;
 }
 
@@ -28,6 +30,7 @@ export const TodoItem = ({
   onMoveDown,
   onSnoozeTomorrow,
   onSnoozeNextWeek,
+  language,
   secretLongPressDelay,
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
@@ -39,7 +42,11 @@ export const TodoItem = ({
   const showStartTimer = !todo.completed && Boolean(onStartTimer);
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
   const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
-  const kindBadge = todo.kind === 'reply' ? '返信' : todo.kind === 'payment' ? '支払い' : null;
+  const kindBadge = todo.kind === 'reply'
+    ? (language === 'en' ? 'Reply' : '返信')
+    : todo.kind === 'payment'
+      ? (language === 'en' ? 'Pay' : '支払い')
+      : null;
   const deadlineLabel = (() => {
     if (!todo.deadlineAt) return null;
     const match = todo.deadlineAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -286,7 +293,7 @@ export const TodoItem = ({
               </div>
             )}
             {kindBadge && (
-              <span className="px-2 py-1 text-[11px] font-semibold rounded-full border
+              <span className="px-2 py-1 text-[12px] font-semibold rounded-full border
                 bg-bg-soft border-border-light text-text-sub"
               >
                 {kindBadge}

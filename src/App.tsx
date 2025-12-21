@@ -873,6 +873,7 @@ function App() {
                   onStartTimer={handleStartTimer}
                   onEdit={handleEditTodo}
                   onDelete={deleteTodo}
+                  language={language}
                   secretLongPressDelay={secretLongPressDelay}
                 />
               ))
@@ -919,6 +920,7 @@ function App() {
                   onSnoozeTomorrow={canSnooze ? () => handleSnoozeTodo(todo.id, 1) : undefined}
                   onSnoozeNextWeek={canSnooze ? () => handleSnoozeTodo(todo.id, 7) : undefined}
                   onDelete={deleteTodo}
+                  language={language}
                   secretLongPressDelay={secretLongPressDelay}
                 />
               );
