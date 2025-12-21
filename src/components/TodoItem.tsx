@@ -8,6 +8,7 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onToggleToday: (id: string) => void;
+  onStartTimer: (id: string) => void;
   secretLongPressDelay?: number;
 }
 
@@ -16,12 +17,14 @@ export const TodoItem = ({
   onToggle, 
   onDelete,
   onToggleToday,
+  onStartTimer,
   secretLongPressDelay,
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const isWorkStep = /^[①②③④⑤]/.test(todo.text);
   const isToday = Boolean(todo.isToday);
+  const showStartTimer = !todo.completed;
 
   const stopPropagation = (event: React.SyntheticEvent) => {
     event.stopPropagation();
@@ -130,23 +133,40 @@ export const TodoItem = ({
           </span>
         </div>
 
-        <button
-          type="button"
-          aria-pressed={isToday}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleToday(todo.id);
-          }}
-          onTouchStart={stopPropagation}
-          onMouseDown={stopPropagation}
-          className={`tap-target px-3 text-xs font-semibold rounded-full border
-            ${isToday
-              ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
-              : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
-            }`}
-        >
-          今日
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={isToday}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleToday(todo.id);
+            }}
+            onTouchStart={stopPropagation}
+            onMouseDown={stopPropagation}
+            className={`tap-target px-3 text-xs font-semibold rounded-full border
+              ${isToday
+                ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+              }`}
+          >
+            今日
+          </button>
+          {showStartTimer && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onStartTimer(todo.id);
+              }}
+              onTouchStart={stopPropagation}
+              onMouseDown={stopPropagation}
+              className="tap-target px-3 text-xs font-semibold rounded-full border
+                bg-bg-soft border-border-light text-text-sub hover:bg-gray-100"
+            >
+              5分Start
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 削除確認オーバーレイ */}

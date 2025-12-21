@@ -36,6 +36,7 @@ const LANGUAGE_STORAGE_KEY = 'language';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const WORK_PLAN_STEPS = [
   '① 完了条件を書く（5分）',
   '② 素材を集める（10分）',
@@ -56,6 +57,13 @@ const FAMILY_EVENT_STEPS = [
   '④ 移動・集合確認（5分）',
   '⑤ 当日リマインド文を作る（5分）',
 ];
+
+const formatCountdown = (ms: number): string => {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
 
 const resolveThemeSetting = (): ThemeSetting => {
   if (typeof window === 'undefined') return 'system';
@@ -136,6 +144,8 @@ function App() {
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
   const [lastRoomId, setLastRoomId] = useState(resolveLastRoomId);
   const [lastActivityAt, setLastActivityAt] = useState<Date | null>(null);
+  const [activeTimer, setActiveTimer] = useState<{ todoId: string; endsAt: number } | null>(null);
+  const [remainingMs, setRemainingMs] = useState(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -173,6 +183,25 @@ function App() {
   useEffect(() => {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
   }, [secretLongPressDelay]);
+
+  useEffect(() => {
+    if (!activeTimer) {
+      setRemainingMs(0);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const diff = activeTimer.endsAt - Date.now();
+      setRemainingMs(Math.max(0, diff));
+      if (diff <= 0) {
+        setActiveTimer(null);
+      }
+    };
+
+    updateRemaining();
+    const intervalId = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [activeTimer]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -301,6 +330,23 @@ function App() {
     setTodoToday(id, nextValue);
   }, [setTodoToday, setToast, todos]);
 
+  const handleStartTimer = useCallback((id: string) => {
+    setActiveTimer({ todoId: id, endsAt: Date.now() + FIVE_MINUTES_MS });
+  }, []);
+
+  const handleStopTimer = useCallback(() => {
+    setActiveTimer(null);
+  }, []);
+
+  const handleCompleteFromTimer = useCallback(() => {
+    if (!activeTimer) return;
+    const target = todos.find((todo) => todo.id === activeTimer.todoId);
+    if (target && !target.completed) {
+      toggleTodo(target.id);
+    }
+    setActiveTimer(null);
+  }, [activeTimer, todos, toggleTodo]);
+
   const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
     if (type === 'workPlan') {
       addTodos([text, ...WORK_PLAN_STEPS]);
@@ -420,6 +466,9 @@ function App() {
   const todayTodos = todos.filter((todo) => todo.isToday);
   const backlogTodos = todos.filter((todo) => !todo.isToday);
   const hasVisibleTodos = todos.some((todo) => !todo.isSecret);
+  const activeTimerTodo = activeTimer
+    ? todos.find((todo) => todo.id === activeTimer.todoId) ?? null
+    : null;
 
   // ホーム画面（ToDo）
   return (
@@ -458,6 +507,7 @@ function App() {
                 todo={todo}
                 onToggle={handleToggle}
                 onToggleToday={handleToggleToday}
+                onStartTimer={handleStartTimer}
                 onDelete={deleteTodo}
                 secretLongPressDelay={secretLongPressDelay}
               />
@@ -481,6 +531,7 @@ function App() {
                 todo={todo}
                 onToggle={handleToggle}
                 onToggleToday={handleToggleToday}
+                onStartTimer={handleStartTimer}
                 onDelete={deleteTodo}
                 secretLongPressDelay={secretLongPressDelay}
               />
@@ -539,6 +590,41 @@ function App() {
         isLoading={joinLoading}
         error={joinError}
       />
+
+      {activeTimer && activeTimerTodo && (
+        <div className="fixed bottom-0 left-0 right-0 bg-card-white border-t border-border-light
+          px-4 py-3 safe-area-bottom z-40"
+        >
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-text-main truncate">
+                {activeTimerTodo.text}
+              </p>
+              <p className="text-xs text-text-muted">
+                {formatCountdown(remainingMs)}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleStopTimer}
+                className="min-h-[44px] px-4 rounded-full border border-border-light
+                  text-sm font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+              >
+                停止
+              </button>
+              <button
+                type="button"
+                onClick={handleCompleteFromTimer}
+                className="min-h-[44px] px-4 rounded-full bg-brand-mint text-white
+                  text-sm font-semibold hover:bg-main-deep transition-colors"
+              >
+                完了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* トースト */}
       {updateReady && (
