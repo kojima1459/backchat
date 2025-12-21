@@ -3,20 +3,22 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
 import type { User } from "firebase/auth";
 import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 
-// [リファクタ A-1] Firebase設定を環境変数から読み込むように変更
-// 改修理由: ハードコードされた設定値はセキュリティリスクが高く、環境ごとの切り替えも困難
-// 期待される効果: 本番/開発環境の切り替えが容易になり、設定値の漏洩リスクが低減
+// Firebase設定（productionの認証エラー対策）
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyBx_5d5BoUiCtV65VfismAVF0qnYP7sgcE",
+  authDomain: "shiretto-todo-chat.firebaseapp.com",
+  projectId: "shiretto-todo-chat",
+  storageBucket: "shiretto-todo-chat.firebasestorage.app",
+  messagingSenderId: "964149329302",
+  appId: "1:964149329302:web:6638065f19fec2493bb1b7",
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+if (import.meta.env.DEV) {
+  console.info(`Firebase initialized: ${firebaseConfig.projectId}`);
+}
 
 // Export Firebase services
 export const auth = getAuth(app);
