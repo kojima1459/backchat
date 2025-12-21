@@ -161,7 +161,7 @@ const parseDeadlineFromText = (text: string, baseDate: Date): string | null => {
     return createDateKey(baseDate.getFullYear(), month, day);
   }
 
-  const slashMatch = text.match(/(\d{1,2})[\/-](\d{1,2})/);
+  const slashMatch = text.match(/(\d{1,2})[/-](\d{1,2})/);
   if (slashMatch) {
     const month = Number(slashMatch[1]);
     const day = Number(slashMatch[2]);
@@ -819,7 +819,7 @@ function App() {
         : '休憩'
     : '';
 
-  const handleMoveBacklog = useCallback((id: string, direction: -1 | 1) => {
+  const handleMoveBacklog = (id: string, direction: -1 | 1) => {
     const index = backlogActiveIds.indexOf(id);
     if (index === -1) return;
     const nextIndex = index + direction;
@@ -827,7 +827,7 @@ function App() {
     const reordered = [...backlogActiveIds];
     [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
     setTodoOrders(reordered);
-  }, [backlogActiveIds, setTodoOrders]);
+  };
 
   // ホーム画面（ToDo）
   return (
