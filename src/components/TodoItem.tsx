@@ -20,7 +20,7 @@ export const TodoItem = ({
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
-  const isWorkStep = /^[①②③④]/.test(todo.text);
+  const isWorkStep = /^[①②③④⑤]/.test(todo.text);
   const isToday = Boolean(todo.isToday);
 
   const stopPropagation = (event: React.SyntheticEvent) => {
