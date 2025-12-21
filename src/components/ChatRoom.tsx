@@ -3,6 +3,7 @@ import { DoorOpen, MoreVertical, Send, Trash2, X } from 'lucide-react';
 import type { MessageData } from '../services/message';
 import { subscribeMessages, sendMessage, markAsRead } from '../services/message';
 import { deleteRoom, leaveRoom } from '../services/room';
+import { Toast } from './Toast';
 
 interface ChatRoomProps {
   roomId: string;
@@ -21,6 +22,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
   const [isLeaving, setIsLeaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendErrorToast, setSendErrorToast] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +57,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     const success = await sendMessage(roomId, uid, text);
     if (!success) {
       setInputText(text); // 失敗したら復元
+      setSendErrorToast(true);
     }
     
     setIsSending(false);
@@ -62,6 +65,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isSending) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -285,6 +289,13 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
             </div>
           </div>
         </div>
+      )}
+
+      {sendErrorToast && (
+        <Toast
+          message="送信に失敗しました"
+          onClose={() => setSendErrorToast(false)}
+        />
       )}
     </div>
   );
