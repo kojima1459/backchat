@@ -104,7 +104,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
       return;
     }
 
-    setActionError('退出できませんでした。ルームが削除されている可能性があります。');
+    setActionError('退出できませんでした。共有が削除されている可能性があります。');
   };
 
   const handleDeleteRoom = async () => {
@@ -167,7 +167,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-text-muted text-sm">
-              メッセージを送ってみよう
+              コメントを送ってみよう
             </p>
           </div>
         ) : (
@@ -191,7 +191,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="メッセージを入力..."
+            placeholder="コメントを入力..."
             className="flex-1 px-4 py-2.5 bg-bg-soft border border-border-light rounded-full
               text-text-main placeholder:text-text-muted
               focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20
@@ -220,7 +220,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-bold text-text-main">ルーム操作</h2>
+              <h2 className="text-lg font-bold text-text-main">共有操作</h2>
               <button
                 onClick={closeActions}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -230,8 +230,8 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
             </div>
 
             <div className="bg-bg-soft rounded-xl p-4 text-sm text-text-sub">
-              <p>一時退出はあなたのみ退室し、ルームとキーは残ります。</p>
-              <p className="mt-2">完全削除はルーム自体を消去し、復元できません。</p>
+              <p>一時退出はあなたのみ退室し、共有と共有コードは残ります。</p>
+              <p className="mt-2">完全削除は共有自体を消去し、復元できません。</p>
             </div>
 
             <div className="mt-4 space-y-3">
@@ -244,7 +244,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
                   disabled:bg-border-light disabled:cursor-not-allowed"
               >
                 <DoorOpen className="w-4 h-4" />
-                {isLeaving ? '退出中...' : '一時退出（キーは残る）'}
+                {isLeaving ? '退出中...' : '一時退出（共有コードは残る）'}
               </button>
 
               <div className="space-y-3">
