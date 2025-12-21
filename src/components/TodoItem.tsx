@@ -39,6 +39,7 @@ export const TodoItem = ({
   const showStartTimer = !todo.completed && Boolean(onStartTimer);
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
   const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
+  const kindBadge = todo.kind === 'reply' ? '返信' : todo.kind === 'payment' ? '支払い' : null;
   const deadlineLabel = (() => {
     if (!todo.deadlineAt) return null;
     const match = todo.deadlineAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -283,6 +284,13 @@ export const TodoItem = ({
                   来週
                 </button>
               </div>
+            )}
+            {kindBadge && (
+              <span className="px-2 py-1 text-[11px] font-semibold rounded-full border
+                bg-bg-soft border-border-light text-text-sub"
+              >
+                {kindBadge}
+              </span>
             )}
             <button
               type="button"
