@@ -7,6 +7,7 @@ interface TodoItemProps {
   todo: Todo;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
+  onToggleToday: (id: string) => void;
   secretLongPressDelay?: number;
 }
 
@@ -14,11 +15,17 @@ export const TodoItem = ({
   todo, 
   onToggle, 
   onDelete,
+  onToggleToday,
   secretLongPressDelay,
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const isWorkStep = /^[①②③④]/.test(todo.text);
+  const isToday = Boolean(todo.isToday);
+
+  const stopPropagation = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
 
   // シークレットタスク用の長押しハンドラー（クリック抑止のために維持）
   const secretLongPress = useLongPress({
@@ -122,6 +129,24 @@ export const TodoItem = ({
             {todo.text}
           </span>
         </div>
+
+        <button
+          type="button"
+          aria-pressed={isToday}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleToday(todo.id);
+          }}
+          onTouchStart={stopPropagation}
+          onMouseDown={stopPropagation}
+          className={`tap-target px-3 text-xs font-semibold rounded-full border
+            ${isToday
+              ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+              : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+            }`}
+        >
+          今日
+        </button>
       </div>
 
       {/* 削除確認オーバーレイ */}

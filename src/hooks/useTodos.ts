@@ -121,6 +121,15 @@ export const useTodos = () => {
     );
   }, []);
 
+  // 今日タスク切り替え
+  const setTodoToday = useCallback((id: string, isToday: boolean) => {
+    setTodos(prev =>
+      prev.map(todo =>
+        todo.id === id ? { ...todo, isToday } : todo
+      )
+    );
+  }, []);
+
   // タスク削除
   const deleteTodo = useCallback((id: string) => {
     setTodos(prev => prev.filter(todo => todo.id !== id && !todo.isSecret));
@@ -153,6 +162,7 @@ export const useTodos = () => {
     addTodo,
     addTodos,
     toggleTodo,
+    setTodoToday,
     deleteTodo,
     editTodo,
     isLoaded,

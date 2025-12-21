@@ -95,7 +95,7 @@ const formatTimeAgo = (date: Date | null): string => {
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
-  const { todos, addTodo, addTodos, toggleTodo, deleteTodo, isLoaded } = useTodos();
+  const { todos, addTodo, addTodos, toggleTodo, setTodoToday, deleteTodo, isLoaded } = useTodos();
   
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
@@ -273,6 +273,12 @@ function App() {
     toggleTodo(id);
   }, [todos, toggleTodo]);
 
+  const handleToggleToday = useCallback((id: string) => {
+    const target = todos.find((todo) => todo.id === id);
+    if (!target) return;
+    setTodoToday(id, !target.isToday);
+  }, [setTodoToday, todos]);
+
   const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
     if (type === 'workPlan') {
       addTodos([text, ...WORK_PLAN_STEPS]);
@@ -421,6 +427,7 @@ function App() {
                 key={todo.id}
                 todo={todo}
                 onToggle={handleToggle}
+                onToggleToday={handleToggleToday}
                 onDelete={deleteTodo}
                 secretLongPressDelay={secretLongPressDelay}
               />
@@ -443,6 +450,7 @@ function App() {
                 key={todo.id}
                 todo={todo}
                 onToggle={handleToggle}
+                onToggleToday={handleToggleToday}
                 onDelete={deleteTodo}
                 secretLongPressDelay={secretLongPressDelay}
               />
