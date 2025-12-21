@@ -59,7 +59,7 @@ export const Header = ({
           onMouseLeave={handleMouseLeave}
           onClick={titleLongPress.onClick}
         >
-          しれっとToDo
+          The To Do
         </h1>
         <div className="flex items-center gap-2">
           <button
