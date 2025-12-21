@@ -6,7 +6,7 @@
 //   - ルーム管理ロジックを useRoomManager フックに分離
 //   - 認証状態は AuthContext から直接取得（A-3 Prop Drilling解消）
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { Header } from './components/Header';
 import { TodoItem } from './components/TodoItem';
@@ -41,6 +41,67 @@ function App() {
   
   // トースト状態
   const [toast, setToast] = useState<string | null>(null);
+  const [updateReady, setUpdateReady] = useState(false);
+  const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const reloadRequestedRef = useRef(false);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    let didSetup = false;
+    let isActive = true;
+
+    const showUpdate = (registration: ServiceWorkerRegistration) => {
+      if (!isActive) return;
+      setUpdateRegistration(registration);
+      setUpdateReady(true);
+    };
+
+    const setupRegistration = (registration: ServiceWorkerRegistration) => {
+      if (didSetup) return;
+      didSetup = true;
+
+      if (registration.waiting) {
+        showUpdate(registration);
+      }
+
+      registration.addEventListener('updatefound', () => {
+        const installing = registration.installing;
+        if (!installing) return;
+
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdate(registration);
+          }
+        });
+      });
+    };
+
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (registration) {
+        setupRegistration(registration);
+      }
+    });
+
+    navigator.serviceWorker.ready.then((registration) => {
+      if (registration) {
+        setupRegistration(registration);
+      }
+    });
+
+    const handleControllerChange = () => {
+      if (reloadRequestedRef.current) {
+        window.location.reload();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    return () => {
+      isActive = false;
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    };
+  }, []);
 
   // タスク完了時のハンドラー
   const handleToggle = useCallback((id: string) => {
@@ -107,6 +168,18 @@ function App() {
     setCurrentRoomId(null);
     setToast('ルームから退出しました');
   }, []);
+
+  const handleUpdateReload = useCallback(() => {
+    reloadRequestedRef.current = true;
+    setUpdateReady(false);
+
+    if (updateRegistration?.waiting) {
+      updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      return;
+    }
+
+    window.location.reload();
+  }, [updateRegistration]);
 
   // ローディング中
   if (isLoading || !isLoaded) {
@@ -212,12 +285,20 @@ function App() {
       />
       
       {/* トースト */}
-      {toast && (
+      {updateReady ? (
+        <Toast
+          message="Update available"
+          actionLabel="Reload"
+          onAction={handleUpdateReload}
+          duration={null}
+          onClose={() => setUpdateReady(false)}
+        />
+      ) : toast ? (
         <Toast
           message={toast}
           onClose={() => setToast(null)}
         />
-      )}
+      ) : null}
     </div>
   );
 }

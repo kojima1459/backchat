@@ -1,31 +1,56 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface ToastProps {
   message: string;
-  duration?: number;
+  duration?: number | null;
+  actionLabel?: string;
+  onAction?: () => void;
   onClose: () => void;
 }
 
-export const Toast = ({ message, duration = 2000, onClose }: ToastProps) => {
+export const Toast = ({ 
+  message, 
+  duration = 2000, 
+  actionLabel, 
+  onAction,
+  onClose 
+}: ToastProps) => {
   const [isVisible, setIsVisible] = useState(true);
 
+  const dismiss = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(onClose, 300); // アニメーション後に削除
+  }, [onClose]);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(onClose, 300); // アニメーション後に削除
-    }, duration);
+    if (duration === null) return;
+
+    const timer = setTimeout(dismiss, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration, dismiss]);
 
   return (
     <div
       className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 
         bg-text-main text-white px-4 py-2 rounded-full text-sm font-medium
-        shadow-lg transition-all duration-300 z-50
+        shadow-lg transition-all duration-300 z-50 flex items-center gap-2
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
     >
-      {message}
+      <span>{message}</span>
+      {actionLabel && onAction && (
+        <button
+          type="button"
+          onClick={() => {
+            onAction();
+            dismiss();
+          }}
+          className="px-3 py-1 text-xs font-semibold text-white
+            bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 };
