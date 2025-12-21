@@ -52,7 +52,8 @@ const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const AUTO_SORT_STORAGE_KEY = 'backlogAutoSort';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
-const TIMER_STORAGE_KEY = 'todoTimer';
+const TIMER_STORAGE_KEY = 'timerState';
+const LEGACY_TIMER_STORAGE_KEY = 'todoTimer';
 const START_PHASE_MS = 5 * 60 * 1000;
 const FOCUS_PHASE_MS = 25 * 60 * 1000;
 const REST_PHASE_MS = 5 * 60 * 1000;
@@ -383,7 +384,12 @@ function App() {
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
   const [lastRoomId, setLastRoomId] = useState(resolveLastRoomId);
   const [lastActivityAt, setLastActivityAt] = useState<Date | null>(null);
-  const [activeTimer, setActiveTimer] = useState<{ todoId: string; endsAt: number; phase: TimerPhase } | null>(null);
+  const [activeTimer, setActiveTimer] = useState<{
+    taskId: string;
+    startedAt: number;
+    endsAt: number;
+    phase: TimerPhase;
+  } | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
   const [inboxText, setInboxText] = useState('');
@@ -440,20 +446,41 @@ function App() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const stored = safeGetItem(TIMER_STORAGE_KEY);
+    const stored = safeGetItem(TIMER_STORAGE_KEY) ?? safeGetItem(LEGACY_TIMER_STORAGE_KEY);
     if (!stored) return;
 
     try {
-      const parsed = JSON.parse(stored) as { todoId?: string; endsAt?: number; phase?: TimerPhase };
+      const parsed = JSON.parse(stored) as {
+        taskId?: string;
+        todoId?: string;
+        startedAt?: number;
+        endsAt?: number;
+        phase?: TimerPhase;
+      };
+      const taskId = parsed.taskId ?? parsed.todoId;
       if (
-        parsed.todoId
+        taskId
         && typeof parsed.endsAt === 'number'
         && (parsed.phase === 'start' || parsed.phase === 'focus' || parsed.phase === 'rest')
       ) {
-        setActiveTimer({ todoId: parsed.todoId, endsAt: parsed.endsAt, phase: parsed.phase });
+        const duration = parsed.phase === 'start'
+          ? START_PHASE_MS
+          : parsed.phase === 'focus'
+            ? FOCUS_PHASE_MS
+            : REST_PHASE_MS;
+        const startedAt = typeof parsed.startedAt === 'number'
+          ? parsed.startedAt
+          : parsed.endsAt - duration;
+        setActiveTimer({
+          taskId,
+          startedAt,
+          endsAt: parsed.endsAt,
+          phase: parsed.phase,
+        });
       }
     } catch {
       safeRemoveItem(TIMER_STORAGE_KEY);
+      safeRemoveItem(LEGACY_TIMER_STORAGE_KEY);
     }
   }, []);
 
@@ -461,6 +488,7 @@ function App() {
     if (typeof window === 'undefined') return;
     if (!activeTimer) {
       safeRemoveItem(TIMER_STORAGE_KEY);
+      safeRemoveItem(LEGACY_TIMER_STORAGE_KEY);
       return;
     }
     safeSetItem(TIMER_STORAGE_KEY, JSON.stringify(activeTimer));
@@ -493,12 +521,24 @@ function App() {
         window.clearInterval(intervalId);
       }
     }, 1000);
-    return () => window.clearInterval(intervalId);
+    const handleResume = () => {
+      if (!document.hidden) {
+        updateRemaining();
+      }
+    };
+    window.addEventListener('visibilitychange', handleResume);
+    window.addEventListener('focus', handleResume);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('visibilitychange', handleResume);
+      window.removeEventListener('focus', handleResume);
+    };
   }, [activeTimer]);
 
   useEffect(() => {
     if (!activeTimer) return;
-    const target = todos.find((todo) => todo.id === activeTimer.todoId);
+    const target = todos.find((todo) => todo.id === activeTimer.taskId);
     if (!target || target.completed || !target.isToday) {
       setActiveTimer(null);
       setShowTimerPrompt(false);
@@ -629,7 +669,8 @@ function App() {
   }, [setTodoToday, setToast, todos]);
 
   const handleStartTimer = useCallback((id: string) => {
-    setActiveTimer({ todoId: id, endsAt: Date.now() + START_PHASE_MS, phase: 'start' });
+    const now = Date.now();
+    setActiveTimer({ taskId: id, startedAt: now, endsAt: now + START_PHASE_MS, phase: 'start' });
     setShowTimerPrompt(false);
   }, []);
 
@@ -640,7 +681,7 @@ function App() {
 
   const handleCompleteFromTimer = useCallback(() => {
     if (!activeTimer) return;
-    const target = todos.find((todo) => todo.id === activeTimer.todoId);
+    const target = todos.find((todo) => todo.id === activeTimer.taskId);
     if (target && !target.completed) {
       toggleTodo(target.id);
     }
@@ -654,14 +695,16 @@ function App() {
       ? 'focus'
       : 'focus';
     const duration = activeTimer.phase === 'start' ? FOCUS_PHASE_MS : FOCUS_PHASE_MS;
-    setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + duration, phase: nextPhase });
+    const now = Date.now();
+    setActiveTimer({ taskId: activeTimer.taskId, startedAt: now, endsAt: now + duration, phase: nextPhase });
     setShowTimerPrompt(false);
   }, [activeTimer]);
 
   const handlePrimaryTimerAction = useCallback(() => {
     if (!activeTimer) return;
     if (activeTimer.phase === 'focus') {
-      setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + REST_PHASE_MS, phase: 'rest' });
+      const now = Date.now();
+      setActiveTimer({ taskId: activeTimer.taskId, startedAt: now, endsAt: now + REST_PHASE_MS, phase: 'rest' });
       setShowTimerPrompt(false);
       return;
     }
@@ -1013,7 +1056,7 @@ function App() {
       .map((todo) => todo.id);
   const hasVisibleTodos = todos.some((todo) => !todo.isSecret);
   const activeTimerTodo = activeTimer
-    ? todos.find((todo) => todo.id === activeTimer.todoId) ?? null
+    ? todos.find((todo) => todo.id === activeTimer.taskId) ?? null
     : null;
   const timerPhaseLabel = activeTimer
     ? activeTimer.phase === 'start'
