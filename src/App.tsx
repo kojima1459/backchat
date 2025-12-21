@@ -530,11 +530,13 @@ function App() {
     };
     window.addEventListener('visibilitychange', handleResume);
     window.addEventListener('focus', handleResume);
+    window.addEventListener('pageshow', handleResume);
 
     return () => {
       window.clearInterval(intervalId);
       window.removeEventListener('visibilitychange', handleResume);
       window.removeEventListener('focus', handleResume);
+      window.removeEventListener('pageshow', handleResume);
     };
   }, [activeTimer]);
 
