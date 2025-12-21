@@ -182,7 +182,7 @@ export const JoinRoomModal = ({
                   setRoomKey(e.target.value);
                   setLocalError(null);
                 }}
-                placeholder="例) A1b2C3d4E5f6G7h8"
+              placeholder="例) mint-piano-river-92"
                 className={`w-full px-4 py-3 bg-bg-soft border rounded-xl
                   text-text-main placeholder:text-text-muted
                   focus:outline-none focus:ring-2 transition-all
@@ -207,7 +207,7 @@ export const JoinRoomModal = ({
               )}
             </div>
 
-            {roomKey && (
+            {roomKey.trim().length > 0 && (
               <div className="mt-3 flex gap-2">
                 <button
                   type="button"
@@ -234,11 +234,11 @@ export const JoinRoomModal = ({
             
             {/* ヘルパーテキスト / エラー */}
             <div className="mt-2 min-h-[20px]">
-              {localError ? (
-                <p className="text-sm text-error">{localError}</p>
-              ) : (
-                <p className="text-xs text-text-muted">10文字以上 / 英数記号</p>
-              )}
+            {localError ? (
+              <p className="text-sm text-error">{localError}</p>
+            ) : (
+              <p className="text-xs text-text-muted">英数とハイフン（例: mint-piano-river-92）</p>
+            )}
             </div>
 
             {/* コピー完了メッセージ */}
