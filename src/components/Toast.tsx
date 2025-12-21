@@ -5,6 +5,7 @@ interface ToastProps {
   duration?: number | null;
   actionLabel?: string;
   onAction?: () => void;
+  positionClassName?: string;
   onClose: () => void;
 }
 
@@ -13,6 +14,7 @@ export const Toast = ({
   duration = 2000, 
   actionLabel, 
   onAction,
+  positionClassName = 'bottom-20',
   onClose 
 }: ToastProps) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -32,7 +34,7 @@ export const Toast = ({
 
   return (
     <div
-      className={`fixed bottom-20 left-1/2 transform -translate-x-1/2 
+      className={`fixed ${positionClassName} left-1/2 transform -translate-x-1/2 
         bg-text-main text-white px-4 py-2 rounded-full text-sm font-medium
         shadow-lg transition-all duration-300 z-50 flex items-center gap-2
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}

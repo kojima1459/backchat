@@ -61,6 +61,8 @@ function App() {
   const [updateReady, setUpdateReady] = useState(false);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const reloadRequestedRef = useRef(false);
+  const [connectionToast, setConnectionToast] = useState<{ message: string; persist: boolean } | null>(null);
+  const previousOnlineRef = useRef(isOnline);
   const [theme, setTheme] = useState<Theme>(resolveTheme);
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
 
@@ -72,6 +74,18 @@ function App() {
   useEffect(() => {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
   }, [secretLongPressDelay]);
+
+  useEffect(() => {
+    if (previousOnlineRef.current === isOnline) return;
+
+    if (!isOnline) {
+      setConnectionToast({ message: 'オフラインです', persist: true });
+    } else if (!previousOnlineRef.current) {
+      setConnectionToast({ message: 'オンラインに戻りました', persist: false });
+    }
+
+    previousOnlineRef.current = isOnline;
+  }, [isOnline]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -318,7 +332,7 @@ function App() {
       />
       
       {/* トースト */}
-      {updateReady ? (
+      {updateReady && (
         <Toast
           message="Update available"
           actionLabel="Reload"
@@ -326,7 +340,16 @@ function App() {
           duration={null}
           onClose={() => setUpdateReady(false)}
         />
-      ) : toast ? (
+      )}
+      {connectionToast && (
+        <Toast
+          message={connectionToast.message}
+          duration={connectionToast.persist ? null : 2000}
+          onClose={() => setConnectionToast(null)}
+          positionClassName={updateReady ? 'bottom-32' : 'bottom-20'}
+        />
+      )}
+      {!updateReady && !connectionToast && toast ? (
         <Toast
           message={toast}
           onClose={() => setToast(null)}
