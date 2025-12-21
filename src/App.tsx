@@ -91,6 +91,13 @@ function App() {
     setToast('ルームを削除しました');
   }, []);
 
+  // ルーム退出後の処理
+  const handleRoomLeft = useCallback(() => {
+    setCurrentScreen('home');
+    setCurrentRoomId(null);
+    setToast('ルームから退出しました');
+  }, []);
+
   // ローディング中
   if (isLoading || !isLoaded) {
     return (
@@ -112,6 +119,7 @@ function App() {
         uid={uid}
         onBack={handleBackToHome}
         onRoomDeleted={handleRoomDeleted}
+        onRoomLeft={handleRoomLeft}
       />
     );
   }
