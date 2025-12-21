@@ -85,7 +85,7 @@ export const TodoItem = ({
         onMouseLeave={handleMouseLeave}
         onClick={longPressHandlers.onClick}
         className={`
-          flex items-center gap-3 p-4 bg-card-white rounded-xl
+          flex items-center gap-4 p-4 min-h-[60px] bg-card-white rounded-xl
           border border-border-light shadow-sm
           transition-all duration-200 cursor-pointer select-none
           ${isPressed ? 'scale-[0.98] bg-gray-50' : ''}
@@ -95,7 +95,7 @@ export const TodoItem = ({
         {/* チェックボックス */}
         <div
           className={`
-            w-6 h-6 rounded-lg border-2 flex items-center justify-center
+            w-7 h-7 rounded-lg border-2 flex items-center justify-center
             transition-all duration-200
             ${todo.completed 
               ? 'bg-brand-mint border-brand-mint' 
@@ -103,7 +103,7 @@ export const TodoItem = ({
             }
           `}
         >
-          {todo.completed && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+          {todo.completed && <Check className="w-5 h-5 text-white" strokeWidth={3} />}
         </div>
 
         {/* タスクテキスト */}
@@ -113,7 +113,7 @@ export const TodoItem = ({
           )}
           <span
             className={`
-              text-[15px] font-medium
+              text-[17px] leading-relaxed font-medium
               ${todo.completed ? 'line-through text-text-muted' : 'text-text-main'}
             `}
           >

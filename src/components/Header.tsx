@@ -42,9 +42,9 @@ export const Header = ({ onSettingsClick, onSecretLongPress, secretLongPressDela
 
   return (
     <header className="sticky top-0 z-40 bg-bg-soft/80 backdrop-blur-md safe-area-top">
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-4 py-4 min-h-[60px]">
         <h1 
-          className={`text-xl font-bold text-text-main select-none transition-transform transition-opacity duration-150
+          className={`text-[18px] font-bold text-text-main select-none transition-transform transition-opacity duration-150
             ${isPressed ? 'opacity-90 scale-[0.98]' : ''}`}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}

@@ -27,8 +27,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Tasks',
-        short_name: 'Tasks',
+        name: 'The ToDo',
+        short_name: 'The ToDo',
         description: 'シンプルで可愛いToDoリストアプリ',
         start_url: '/',
         display: 'standalone',

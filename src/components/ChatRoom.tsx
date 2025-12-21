@@ -14,6 +14,9 @@ interface ChatRoomProps {
   onRoomLeft: () => void;
 }
 
+const MAX_TEXTAREA_HEIGHT = 160;
+const MIN_TEXTAREA_HEIGHT = 44;
+
 export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: ChatRoomProps) => {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [inputText, setInputText] = useState('');
@@ -28,7 +31,18 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
   const [isLabelEditorOpen, setIsLabelEditorOpen] = useState(false);
   const [labelInput, setLabelInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const resizeTextarea = useCallback(() => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = '0px';
+    const nextHeight = Math.min(
+      Math.max(textarea.scrollHeight, MIN_TEXTAREA_HEIGHT),
+      MAX_TEXTAREA_HEIGHT
+    );
+    textarea.style.height = `${nextHeight}px`;
+  }, []);
 
   // メッセージを購読
   useEffect(() => {
@@ -51,12 +65,17 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    resizeTextarea();
+  }, [inputText, resizeTextarea]);
+
   const handleSend = async () => {
     if (!inputText.trim() || isSending) return;
     
     setIsSending(true);
     const text = inputText.trim();
     setInputText('');
+    requestAnimationFrame(resizeTextarea);
     
     const success = await sendMessage(roomId, uid, text);
     if (!success) {
@@ -75,14 +94,6 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     setLabelInput(storedLabel ?? '');
   }, [roomId]);
   /* eslint-enable react-hooks/set-state-in-effect */
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (isSending) return;
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   const openActions = () => {
     setActionError(null);
@@ -165,10 +176,10 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     <div className="fixed inset-0 h-[100dvh] bg-bg-soft flex flex-col z-50">
       {/* ヘッダー */}
       <header className="bg-card-white border-b border-border-light safe-area-top">
-        <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2 px-4 py-3">
+        <div className="grid min-h-[60px] grid-cols-[auto,1fr,auto] items-center gap-2 px-4 py-4">
           <button
             onClick={handleExit}
-            className="tap-target text-sm font-semibold text-text-sub hover:text-text-main transition-colors"
+            className="tap-target text-[16px] font-semibold text-text-sub hover:text-text-main transition-colors"
           >
             ← 戻る
           </button>
@@ -178,7 +189,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
               type="button"
               onClick={openLabelEditor}
               onTouchEnd={openLabelEditor}
-              className="text-sm font-medium text-text-main truncate hover:text-text-sub transition-colors
+              className="text-[17px] font-semibold text-text-main truncate hover:text-text-sub transition-colors
                 px-2 py-1 rounded-md pointer-events-auto"
             >
               {roomLabel || 'メモ'}
@@ -197,7 +208,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
       </header>
 
       {/* メッセージエリア */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <p className="text-text-muted text-sm">
@@ -218,23 +229,23 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
 
       {/* 入力エリア */}
       <div className="bg-card-white border-t border-border-light p-3 safe-area-bottom">
-        <div className="flex items-center gap-2">
-          <input
+        <div className="flex items-end gap-2">
+          <textarea
             ref={inputRef}
-            type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder="コメントを入力..."
-            className="flex-1 px-4 py-2.5 bg-bg-soft border border-border-light rounded-full
-              text-text-main placeholder:text-text-muted
+            rows={1}
+            className="flex-1 px-4 py-2.5 bg-bg-soft border border-border-light rounded-2xl
+              text-[16px] leading-6 text-text-main placeholder:text-text-muted
+              resize-none max-h-40 overflow-y-auto
               focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20
               transition-all"
           />
           <button
             onClick={handleSend}
             disabled={!inputText.trim() || isSending}
-            className="tap-target p-2.5 bg-brand-mint rounded-full
+            className="tap-target p-2.5 bg-brand-mint rounded-full flex-shrink-0
               hover:bg-main-deep transition-colors
               disabled:bg-border-light disabled:cursor-not-allowed"
           >
@@ -403,13 +414,16 @@ const MessageBubble = ({ message, isMine }: MessageBubbleProps) => {
   return (
     <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[75%] px-4 py-2.5 rounded-2xl ${
+        className={`max-w-[78%] px-4 py-3 rounded-2xl ${
           isMine
-            ? 'bg-brand-mint text-white rounded-br-md'
-            : 'bg-card-white border border-border-light text-text-main rounded-bl-md'
+            ? 'bg-brand-mint text-white rounded-br-md mr-3'
+            : 'bg-card-white border border-border-light text-text-main rounded-bl-md ml-3'
         }`}
       >
-        <p className="text-[15px] whitespace-pre-wrap break-words">
+        <p
+          className="text-[16px] leading-relaxed whitespace-pre-wrap"
+          style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+        >
           {message.text}
         </p>
         <p className={`text-[10px] mt-1 ${
