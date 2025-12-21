@@ -13,6 +13,9 @@ export const SettingsModal = ({
   secretLongPressDelay,
   onSecretLongPressDelayChange,
 }: SettingsModalProps) => {
+  const versionLabel = __APP_COMMIT__
+    ? `v${__APP_VERSION__} (${__APP_COMMIT__})`
+    : `v${__APP_VERSION__}`;
   const longPressOptions = [
     { value: 2000, label: '2s' },
     { value: 3000, label: '3s' },
@@ -83,6 +86,10 @@ export const SettingsModal = ({
             </div>
           </div>
         </div>
+
+        <p className="mt-4 text-[11px] text-text-muted text-center">
+          {versionLabel}
+        </p>
       </div>
     </div>
   );
