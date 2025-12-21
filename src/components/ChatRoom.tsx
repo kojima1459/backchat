@@ -68,11 +68,13 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     inputRef.current?.focus();
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const storedLabel = getRoomLabel(roomId);
     setRoomLabel(storedLabel);
     setLabelInput(storedLabel ?? '');
   }, [roomId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isSending) return;
