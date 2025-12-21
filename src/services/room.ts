@@ -94,6 +94,42 @@ export const deleteRoom = async (roomId: string): Promise<boolean> => {
   }
 };
 
+// ルームから一時退出（参加者から削除）
+export const leaveRoom = async (roomId: string, uid: string): Promise<boolean> => {
+  try {
+    const roomRef = doc(db, 'rooms', roomId);
+    const result = await runTransaction(db, async (transaction) => {
+      const roomDoc = await transaction.get(roomRef);
+
+      if (!roomDoc.exists()) {
+        return true;
+      }
+
+      const data = roomDoc.data() as RoomData;
+
+      if (data.deletedAt) {
+        return false;
+      }
+
+      if (!data.participantUids.includes(uid)) {
+        return true;
+      }
+
+      transaction.update(roomRef, {
+        participantUids: data.participantUids.filter((participantUid) => participantUid !== uid),
+        updatedAt: serverTimestamp(),
+      });
+
+      return true;
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Leave room error:', error);
+    return false;
+  }
+};
+
 // ルーム情報を取得
 export const getRoom = async (roomId: string): Promise<RoomData | null> => {
   try {
