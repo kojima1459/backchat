@@ -18,6 +18,50 @@ service cloud.firestore {
     
     // rooms コレクション
     match /rooms/{roomId} {
+      function affectedKeysAre(keys) {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+      }
+
+      function isRoomParticipant() {
+        return isSignedIn() && request.auth.uid in resource.data.participantUids;
+      }
+
+      function isRoomNotDeleted() {
+        return resource.data.deletedAt == null;
+      }
+
+      function isJoinUpdate() {
+        return isRoomNotDeleted() &&
+          affectedKeysAre(['participantUids', 'updatedAt']) &&
+          !(request.auth.uid in resource.data.participantUids) &&
+          request.auth.uid in request.resource.data.participantUids &&
+          resource.data.participantUids.size() < 2 &&
+          request.resource.data.participantUids.size() == resource.data.participantUids.size() + 1 &&
+          request.resource.data.participantUids.hasAll(resource.data.participantUids);
+      }
+
+      function isLeaveUpdate() {
+        return isRoomNotDeleted() &&
+          affectedKeysAre(['participantUids', 'updatedAt']) &&
+          request.auth.uid in resource.data.participantUids &&
+          !(request.auth.uid in request.resource.data.participantUids) &&
+          request.resource.data.participantUids.size() == resource.data.participantUids.size() - 1 &&
+          resource.data.participantUids.hasAll(request.resource.data.participantUids);
+      }
+
+      function isMessageTimestampUpdate() {
+        return isRoomNotDeleted() &&
+          affectedKeysAre(['lastMessageAt', 'updatedAt']) &&
+          isRoomParticipant();
+      }
+
+      function isSoftDeleteUpdate() {
+        return isRoomNotDeleted() &&
+          affectedKeysAre(['deletedAt', 'updatedAt']) &&
+          isRoomParticipant() &&
+          request.resource.data.deletedAt != null;
+      }
+
       // list: 禁止（ルーム一覧は取得不可）
       allow list: if false;
       
@@ -29,14 +73,12 @@ service cloud.firestore {
         request.auth.uid in request.resource.data.participantUids &&
         request.resource.data.participantUids.size() == 1;
       
-      // update: 参加者のみ（参加追加・削除フラグ設定）
+      // update: 参加・退出・メッセージ時刻・論理削除のみ
       allow update: if isSignedIn() && (
-        // 既存の参加者による更新
-        request.auth.uid in resource.data.participantUids ||
-        // 新規参加者の追加（2人目まで）
-        (request.auth.uid in request.resource.data.participantUids &&
-         resource.data.participantUids.size() < 2 &&
-         resource.data.deletedAt == null)
+        isJoinUpdate() ||
+        isLeaveUpdate() ||
+        isMessageTimestampUpdate() ||
+        isSoftDeleteUpdate()
       );
       
       // delete: 禁止（論理削除のみ）
