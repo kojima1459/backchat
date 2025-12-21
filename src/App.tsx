@@ -266,7 +266,7 @@ const parseAiBreakdown = (rawText: string): AiStep[] | null => {
       }>;
     };
     if (!Array.isArray(parsed.steps) || parsed.steps.length !== 4) return null;
-    const normalized = parsed.steps.map((step, index) => {
+    const normalized = parsed.steps.map((step) => {
       const title = typeof step.title === 'string' ? step.title.trim() : '';
       const why = typeof step.why === 'string' ? step.why.trim() : '';
       const minutes = typeof step.minutes === 'number' && AI_ALLOWED_MINUTES.has(step.minutes)
