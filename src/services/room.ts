@@ -35,7 +35,7 @@ export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomRe
         
         // 削除済みチェック
         if (data.deletedAt) {
-          return { success: false as const, error: 'このルームは削除されました' };
+          return { success: false as const, error: 'この共有は削除されました' };
         }
         
         // 既に参加済みかチェック
@@ -45,7 +45,7 @@ export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomRe
         
         // 満員チェック
         if (data.participantUids.length >= 2) {
-          return { success: false as const, error: 'このルーム、もう満員やった🥲' };
+          return { success: false as const, error: 'この共有、もう満員やった🥲' };
         }
         
         // 参加者に追加

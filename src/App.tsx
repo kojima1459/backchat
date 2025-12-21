@@ -186,7 +186,7 @@ function App() {
       setShowJoinModal(false);
       setCurrentScreen('chat');
       if (result.isNew) {
-        setToast('ルームを作成しました');
+        setToast('共有を作成しました');
       }
     } else {
       setJoinError(result.error);
@@ -203,14 +203,14 @@ function App() {
   const handleRoomDeleted = useCallback(() => {
     setCurrentScreen('home');
     setCurrentRoomId(null);
-    setToast('ルームを削除しました');
+    setToast('共有を削除しました');
   }, []);
 
   // ルーム退出後の処理
   const handleRoomLeft = useCallback(() => {
     setCurrentScreen('home');
     setCurrentRoomId(null);
-    setToast('ルームから退出しました');
+    setToast('共有から退出しました');
   }, []);
 
   const handleUpdateReload = useCallback(() => {

@@ -78,7 +78,7 @@ export const JoinRoomModal = ({
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Room Key', text: roomKey });
+        await navigator.share({ title: '共有コード', text: roomKey });
         return;
       } catch {
         await handleCopy();
@@ -163,7 +163,7 @@ export const JoinRoomModal = ({
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-text-main">ルームに入る</h2>
+          <h2 className="text-lg font-bold text-text-main">共有に同期する</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -246,7 +246,7 @@ export const JoinRoomModal = ({
             {copied && (
               <div className="mt-2 p-3 bg-success/10 rounded-xl">
                 <p className="text-sm text-success font-medium">
-                  コピーしました！このキーを相手にも送ってね
+                  コピーしました！この共有コードを相手にも送ってね
                 </p>
               </div>
             )}
@@ -262,7 +262,7 @@ export const JoinRoomModal = ({
                   hover:bg-gray-100 transition-colors"
               >
                 <Sparkles className="w-4 h-4" />
-                キー生成
+              共有コード作成
               </button>
               <button
                 type="submit"
@@ -271,13 +271,13 @@ export const JoinRoomModal = ({
                   hover:bg-main-deep transition-colors
                   disabled:bg-border-light disabled:cursor-not-allowed"
               >
-                {isLoading ? '接続中...' : cooldown ? '待機中...' : '入室 / 作成'}
+              {isLoading ? '接続中...' : cooldown ? '待機中...' : '同期 / 作成'}
               </button>
             </div>
 
             {/* 案内メッセージ */}
             <p className="mt-4 text-xs text-center text-text-muted">
-              同じキーを入力した人同士でチャットできます
+            同じ共有コードを入力した人同士でメモできます
             </p>
           </form>
         </div>
@@ -293,7 +293,7 @@ export const JoinRoomModal = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-text-main">QRで共有</h3>
+            <h3 className="text-lg font-bold text-text-main">QRで共有</h3>
               <button
                 onClick={() => setIsQrOpen(false)}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -318,7 +318,7 @@ export const JoinRoomModal = ({
               </div>
               {!qrError && (
                 <p className="text-xs text-text-muted text-center">
-                  カメラで読み取ってキーをコピー
+                  カメラで読み取って共有コードをコピー
                 </p>
               )}
             </div>
