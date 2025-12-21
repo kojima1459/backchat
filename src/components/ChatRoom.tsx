@@ -4,6 +4,7 @@ import type { MessageData } from '../services/message';
 import { subscribeMessages, sendMessage, markAsRead } from '../services/message';
 import { deleteRoom, leaveRoom } from '../services/room';
 import { Toast } from './Toast';
+import { getRoomLabel } from '../services/roomLabel';
 
 interface ChatRoomProps {
   roomId: string;
@@ -23,6 +24,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendErrorToast, setSendErrorToast] = useState(false);
+  const [roomLabel, setRoomLabel] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,6 +65,10 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     setIsSending(false);
     inputRef.current?.focus();
   };
+
+  useEffect(() => {
+    setRoomLabel(getRoomLabel(roomId));
+  }, [roomId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isSending) return;
@@ -148,8 +154,12 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
           >
             ← 戻る
           </button>
-          
-          <div className="flex-1" />
+
+          <div className="flex-1 flex items-center justify-center px-4">
+            <span className="text-sm font-medium text-text-main truncate">
+              {roomLabel || 'メモ'}
+            </span>
+          </div>
           
           <div className="relative">
             <button
