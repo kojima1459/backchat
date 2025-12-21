@@ -602,7 +602,6 @@ function App() {
     setShowTimerPrompt(false);
   }, [activeTimer]);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const currentDayKey = formatDateKey(new Date());
     const isSnoozed = (todo: Todo) =>
@@ -661,7 +660,6 @@ function App() {
     setTodoToday(removeTarget.id, false);
     setTodoToday(pick.id, true);
   }, [todos, setTodoToday, setToast]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleAddTodo = useCallback((text: string, type: TodoCreateType, kind: TodoKind) => {
     if (type === 'workPlan') {
