@@ -18,6 +18,7 @@ export const TodoItem = ({
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const isWorkStep = /^[①②③④]/.test(todo.text);
 
   // シークレットタスク用の長押しハンドラー（クリック抑止のために維持）
   const secretLongPress = useLongPress({
@@ -90,6 +91,7 @@ export const TodoItem = ({
           transition-all duration-200 cursor-pointer select-none
           ${isPressed ? 'scale-[0.98] bg-gray-50' : ''}
           ${todo.completed ? 'opacity-60' : ''}
+          ${isWorkStep ? 'ml-3' : ''}
         `}
       >
         {/* チェックボックス */}
