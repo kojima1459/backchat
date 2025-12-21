@@ -4,9 +4,33 @@ interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onJoinRoom: () => void;
+  theme: 'mint' | 'mono';
+  onThemeChange: (theme: 'mint' | 'mono') => void;
+  secretLongPressDelay: number;
+  onSecretLongPressDelayChange: (delay: number) => void;
 }
 
-export const SettingsModal = ({ isOpen, onClose, onJoinRoom }: SettingsModalProps) => {
+export const SettingsModal = ({ 
+  isOpen, 
+  onClose, 
+  onJoinRoom,
+  theme,
+  onThemeChange,
+  secretLongPressDelay,
+  onSecretLongPressDelayChange,
+}: SettingsModalProps) => {
+  const themeOptions: Array<{ value: 'mint' | 'mono'; label: string }> = [
+    { value: 'mint', label: 'ミント' },
+    { value: 'mono', label: 'モノ' },
+  ];
+
+  const longPressOptions = [
+    { value: 2000, label: '2s' },
+    { value: 3000, label: '3s' },
+    { value: 5000, label: '5s' },
+    { value: 8000, label: '8s' },
+  ];
+
   if (!isOpen) return null;
 
   return (
@@ -61,6 +85,55 @@ export const SettingsModal = ({ isOpen, onClose, onJoinRoom }: SettingsModalProp
               <div className="text-sm text-text-muted">バージョン 1.0.0</div>
             </div>
           </button>
+        </div>
+
+        <div className="mt-6 border-t border-border-light pt-4 space-y-4">
+          <div>
+            <div className="text-xs text-text-muted mb-2">テーマ</div>
+            <div className="flex gap-2">
+              {themeOptions.map((option) => {
+                const isActive = theme === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onThemeChange(option.value)}
+                    className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium
+                      transition-colors
+                      ${isActive
+                        ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                        : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-text-muted mb-2">裏モード長押し</div>
+            <div className="grid grid-cols-4 gap-2">
+              {longPressOptions.map((option) => {
+                const isActive = secretLongPressDelay === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onSecretLongPressDelayChange(option.value)}
+                    className={`px-2 py-2 rounded-lg border text-sm font-medium
+                      transition-colors
+                      ${isActive
+                        ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                        : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

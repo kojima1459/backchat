@@ -18,6 +18,12 @@
   --font-family-sans: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif;
 }
 
+html[data-theme="mono"] {
+  --color-brand-mint: #64748B;
+  --color-main-deep: #475569;
+  --color-bg-soft: #F1F5F9;
+}
+
 * {
   margin: 0;
   padding: 0;

@@ -8,9 +8,16 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onSecretLongPress?: () => void;
+  secretLongPressDelay?: number;
 }
 
-export const TodoItem = ({ todo, onToggle, onDelete, onSecretLongPress }: TodoItemProps) => {
+export const TodoItem = ({ 
+  todo, 
+  onToggle, 
+  onDelete, 
+  onSecretLongPress,
+  secretLongPressDelay,
+}: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
 
@@ -30,7 +37,7 @@ export const TodoItem = ({ todo, onToggle, onDelete, onSecretLongPress }: TodoIt
         onToggle(todo.id);
       }
     },
-    delay: 5000, // 裏モード入口: 5秒長押し
+    delay: secretLongPressDelay ?? 5000, // 裏モード入口: 5秒長押し
   });
 
   // 通常タスクの長押しハンドラー（削除メニュー表示）

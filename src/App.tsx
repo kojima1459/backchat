@@ -20,6 +20,23 @@ import { useAuth } from './contexts/AuthContext';
 import { joinRoom } from './services/room';
 
 type Screen = 'home' | 'chat';
+type Theme = 'mint' | 'mono';
+
+const THEME_STORAGE_KEY = 'theme';
+const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
+const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
+
+const resolveTheme = (): Theme => {
+  if (typeof window === 'undefined') return 'mint';
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === 'mono' ? 'mono' : 'mint';
+};
+
+const resolveLongPressDelay = (): number => {
+  if (typeof window === 'undefined') return 5000;
+  const stored = Number(localStorage.getItem(LONG_PRESS_STORAGE_KEY));
+  return LONG_PRESS_OPTIONS.includes(stored) ? stored : 5000;
+};
 
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
@@ -44,6 +61,17 @@ function App() {
   const [updateReady, setUpdateReady] = useState(false);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const reloadRequestedRef = useRef(false);
+  const [theme, setTheme] = useState<Theme>(resolveTheme);
+  const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
+  }, [secretLongPressDelay]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
@@ -235,6 +263,7 @@ function App() {
               onToggle={handleToggle}
               onDelete={deleteTodo}
               onSecretLongPress={handleSecretLongPress}
+              secretLongPressDelay={secretLongPressDelay}
             />
           ))}
         </div>
@@ -271,6 +300,10 @@ function App() {
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         onJoinRoom={() => setShowJoinModal(true)}
+        theme={theme}
+        onThemeChange={setTheme}
+        secretLongPressDelay={secretLongPressDelay}
+        onSecretLongPressDelayChange={setSecretLongPressDelay}
       />
       
       <JoinRoomModal
