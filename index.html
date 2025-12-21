@@ -11,6 +11,25 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>Tasks</title>
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var root = document.documentElement;
+          if (stored === 'light' || stored === 'dark') {
+            root.dataset.theme = stored;
+            return;
+          }
+          if (stored === 'mint' || stored === 'mono') {
+            root.dataset.theme = 'light';
+            return;
+          }
+          root.removeAttribute('data-theme');
+        } catch (e) {
+          // ignore
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
