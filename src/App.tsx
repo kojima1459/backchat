@@ -58,7 +58,7 @@ const WORK_PLAN_STEPS = [
   '④ 清書して提出（15分）',
 ];
 const AI_STEP_PREFIXES = ['①', '②', '③', '④'];
-const AI_STEP_MINUTES = [5, 10, 15, 15];
+const AI_STEP_MINUTES = [5, 10, 15, 20];
 const MEETING_MATERIALS_STEPS = [
   '① 目的・結論を1行で書く（5分）',
   '② 相手の論点を3つ予測する（5分）',
@@ -208,12 +208,24 @@ const parseKindFromText = (text: string): { text: string; kind?: TodoKind } => {
 };
 
 const buildAiBreakdownPrompt = (todo: Todo, userContext: string): string => {
-  const context = [AI_DEFAULT_CONTEXT.trim(), userContext.trim()].filter(Boolean).join('\n');
+  const kindLabelMap: Record<TodoKind, string> = {
+    normal: '通常',
+    work_plan: '仕事の段取り',
+    reply: '返信',
+    payment: '支払い',
+  };
+  const kindLabel = todo.kind ? (kindLabelMap[todo.kind] ?? todo.kind) : '';
+  const context = [
+    AI_DEFAULT_CONTEXT.trim(),
+    userContext.trim(),
+    kindLabel ? `種別: ${kindLabel}` : '',
+    todo.deadlineAt ? `期限: ${todo.deadlineAt}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
   return AI_BREAKDOWN_PROMPT_TEMPLATE
     .replaceAll('{{TASK_TITLE}}', todo.text)
-    .replaceAll('{{KIND}}', todo.kind ?? '不明')
-    .replaceAll('{{DEADLINE}}', todo.deadlineAt ?? '不明')
-    .replaceAll('{{USER_CONTEXT}}', context || '不明');
+    .replaceAll('{{CONTEXT_HINT}}', context || '不明');
 };
 
 const parseAiSteps = (rawText: string): AiStep[] | null => {
