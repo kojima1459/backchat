@@ -7,7 +7,7 @@
 //   - 認証状態は AuthContext から直接取得（A-3 Prop Drilling解消）
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { Header } from './components/Header';
 import { TodoItem } from './components/TodoItem';
 import { AddTodoModal, type TodoCreateType } from './components/AddTodoModal';
@@ -22,10 +22,18 @@ import type { JoinRoomErrorCode } from './services/room';
 import type { Todo, TodoKind } from './types/todo';
 import { setRoomLabel } from './services/roomLabel';
 import type { Language } from './i18n';
+import {
+  AI_BREAKDOWN_PROMPT_TEMPLATE,
+  AI_DEFAULT_CONTEXT,
+  GEMINI_API_KEY_STORAGE_KEY,
+  GEMINI_CONTEXT_STORAGE_KEY,
+  GEMINI_MODEL,
+} from './constants/aiBreakdown';
 
 type Screen = 'home' | 'chat';
 type ThemeSetting = 'system' | 'light' | 'dark';
 type TimerPhase = 'start' | 'focus' | 'rest';
+type AiStep = { title: string; minutes: number };
 
 const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
   deleted: 'この共有は削除されました',
@@ -49,6 +57,8 @@ const WORK_PLAN_STEPS = [
   '③ ドラフトを作る（15分）',
   '④ 清書して提出（15分）',
 ];
+const AI_STEP_PREFIXES = ['①', '②', '③', '④'];
+const AI_STEP_MINUTES = [5, 10, 15, 15];
 const MEETING_MATERIALS_STEPS = [
   '① 目的・結論を1行で書く（5分）',
   '② 相手の論点を3つ予測する（5分）',
@@ -109,6 +119,15 @@ const resolveLastRoomId = (): string | null => {
 const resolveAutoSort = (): boolean => {
   if (typeof window === 'undefined') return false;
   return localStorage.getItem(AUTO_SORT_STORAGE_KEY) === 'true';
+};
+
+const safeGetItem = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('[App] localStorage.getItem failed:', error);
+    return null;
+  }
 };
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -188,6 +207,39 @@ const parseKindFromText = (text: string): { text: string; kind?: TodoKind } => {
   return { text: trimmed };
 };
 
+const buildAiBreakdownPrompt = (todo: Todo, userContext: string): string => {
+  const context = [AI_DEFAULT_CONTEXT.trim(), userContext.trim()].filter(Boolean).join('\n');
+  return AI_BREAKDOWN_PROMPT_TEMPLATE
+    .replaceAll('{{TASK_TITLE}}', todo.text)
+    .replaceAll('{{KIND}}', todo.kind ?? '不明')
+    .replaceAll('{{DEADLINE}}', todo.deadlineAt ?? '不明')
+    .replaceAll('{{USER_CONTEXT}}', context || '不明');
+};
+
+const parseAiSteps = (rawText: string): AiStep[] | null => {
+  if (!rawText) return null;
+  let payload = rawText.trim();
+  if (!payload.startsWith('{')) {
+    const start = payload.indexOf('{');
+    const end = payload.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      payload = payload.slice(start, end + 1);
+    }
+  }
+  try {
+    const parsed = JSON.parse(payload) as { steps?: Array<{ title?: string }> };
+    if (!Array.isArray(parsed.steps) || parsed.steps.length !== 4) return null;
+    const normalized = parsed.steps.map((step, index) => {
+      const title = typeof step.title === 'string' ? step.title.trim() : '';
+      return title ? { title, minutes: AI_STEP_MINUTES[index] } : null;
+    });
+    if (normalized.some((step) => step === null)) return null;
+    return normalized as AiStep[];
+  } catch {
+    return null;
+  }
+};
+
 const parseDeadlineDate = (deadlineAt: string): Date | null => {
   const match = deadlineAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (match) {
@@ -239,7 +291,7 @@ const priorityScore = (todo: Todo, now: Date): number => {
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
-  const { todos, addTodos, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
+  const { todos, addTodos, addTodosAfter, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
   
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
@@ -271,6 +323,10 @@ function App() {
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
   const [inboxText, setInboxText] = useState('');
   const [autoSortBacklog, setAutoSortBacklog] = useState(resolveAutoSort);
+  const [aiBreakdownTodo, setAiBreakdownTodo] = useState<Todo | null>(null);
+  const [aiBreakdownSteps, setAiBreakdownSteps] = useState<AiStep[] | null>(null);
+  const [aiBreakdownLoading, setAiBreakdownLoading] = useState(false);
+  const [aiBreakdownError, setAiBreakdownError] = useState<string | null>(null);
   const forcedWarningRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -668,6 +724,88 @@ function App() {
     snoozeTodo(id, formatDateKey(nextDate));
   }, [snoozeTodo]);
 
+  const closeAiBreakdown = useCallback(() => {
+    setAiBreakdownTodo(null);
+    setAiBreakdownSteps(null);
+    setAiBreakdownError(null);
+    setAiBreakdownLoading(false);
+  }, []);
+
+  const runAiBreakdown = useCallback(async (todo: Todo) => {
+    const apiKey = safeGetItem(GEMINI_API_KEY_STORAGE_KEY)?.trim();
+    if (!apiKey) {
+      setToast('Gemini APIキーを設定してください');
+      setShowSettingsModal(true);
+      setAiBreakdownLoading(false);
+      return;
+    }
+
+    const userContext = safeGetItem(GEMINI_CONTEXT_STORAGE_KEY) ?? '';
+    setAiBreakdownLoading(true);
+    setAiBreakdownError(null);
+    setAiBreakdownSteps(null);
+
+    try {
+      const prompt = buildAiBreakdownPrompt(todo, userContext);
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.2,
+            },
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error?.message ?? 'Gemini request failed');
+      }
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const steps = parseAiSteps(text);
+      if (!steps) {
+        throw new Error('Invalid Gemini response');
+      }
+      setAiBreakdownSteps(steps);
+    } catch (error) {
+      setAiBreakdownError('AIの取得に失敗しました');
+      setToast('AIの取得に失敗しました');
+    } finally {
+      setAiBreakdownLoading(false);
+    }
+  }, [setShowSettingsModal, setToast]);
+
+  const handleAiBreakdown = useCallback((todo: Todo) => {
+    const apiKey = safeGetItem(GEMINI_API_KEY_STORAGE_KEY)?.trim();
+    if (!apiKey) {
+      setToast('Gemini APIキーを設定してください');
+      setShowSettingsModal(true);
+      return;
+    }
+    setAiBreakdownTodo(todo);
+    runAiBreakdown(todo);
+  }, [runAiBreakdown, setShowSettingsModal, setToast]);
+
+  const handleRetryAiBreakdown = useCallback(() => {
+    if (!aiBreakdownTodo) return;
+    runAiBreakdown(aiBreakdownTodo);
+  }, [aiBreakdownTodo, runAiBreakdown]);
+
+  const handleAddAiBreakdown = useCallback(() => {
+    if (!aiBreakdownTodo || !aiBreakdownSteps) return;
+    const inputs = aiBreakdownSteps.map((step, index) => ({
+      text: `${AI_STEP_PREFIXES[index]} ${step.title}（${step.minutes}分）`,
+    }));
+    addTodosAfter(aiBreakdownTodo.id, inputs);
+    closeAiBreakdown();
+  }, [addTodosAfter, aiBreakdownSteps, aiBreakdownTodo, closeAiBreakdown]);
+
   // 裏モード入口（長押し）
   const handleSecretLongPress = useCallback(() => {
     setShowJoinModal(true);
@@ -872,6 +1010,7 @@ function App() {
                   onToggleToday={handleToggleToday}
                   onStartTimer={handleStartTimer}
                   onEdit={handleEditTodo}
+                  onAiBreakdown={handleAiBreakdown}
                   onDelete={deleteTodo}
                   language={language}
                   secretLongPressDelay={secretLongPressDelay}
@@ -919,6 +1058,7 @@ function App() {
                   onMoveDown={canMoveDown ? () => handleMoveBacklog(todo.id, 1) : undefined}
                   onSnoozeTomorrow={canSnooze ? () => handleSnoozeTodo(todo.id, 1) : undefined}
                   onSnoozeNextWeek={canSnooze ? () => handleSnoozeTodo(todo.id, 7) : undefined}
+                  onAiBreakdown={handleAiBreakdown}
                   onDelete={deleteTodo}
                   language={language}
                   secretLongPressDelay={secretLongPressDelay}
@@ -974,6 +1114,89 @@ function App() {
         language={language}
         onLanguageChange={setLanguage}
       />
+
+      {aiBreakdownTodo && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={closeAiBreakdown}
+        >
+          <div
+            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-text-main">AI 段取り分解</h2>
+              <button
+                onClick={closeAiBreakdown}
+                className="tap-target p-2 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-text-sub" />
+              </button>
+            </div>
+            <p className="text-sm text-text-muted mb-4 truncate">
+              {aiBreakdownTodo.text}
+            </p>
+
+            {aiBreakdownLoading && (
+              <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
+                <div className="w-5 h-5 border-2 border-brand-mint border-t-transparent
+                  rounded-full animate-spin"
+                />
+                生成中...
+              </div>
+            )}
+
+            {aiBreakdownError && (
+              <div className="mb-4">
+                <p className="text-sm text-text-sub mb-2">{aiBreakdownError}</p>
+                <button
+                  type="button"
+                  onClick={handleRetryAiBreakdown}
+                  className="min-h-[36px] px-3 rounded-full border border-border-light
+                    text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                >
+                  再試行
+                </button>
+              </div>
+            )}
+
+            {aiBreakdownSteps && (
+              <div className="space-y-2">
+                {aiBreakdownSteps.map((step, index) => (
+                  <div
+                    key={`${step.title}-${index}`}
+                    className="p-3 bg-bg-soft rounded-lg text-sm text-text-main"
+                  >
+                    {AI_STEP_PREFIXES[index]} {step.title}（{step.minutes}分）
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={closeAiBreakdown}
+                className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
+                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleAddAiBreakdown}
+                disabled={!aiBreakdownSteps || aiBreakdownLoading}
+                className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
+                  hover:bg-main-deep transition-colors disabled:bg-border-light
+                  disabled:cursor-not-allowed"
+              >
+                サブToDoとして追加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <JoinRoomModal
         isOpen={showJoinModal}

@@ -15,6 +15,7 @@ interface TodoItemProps {
   onMoveDown?: () => void;
   onSnoozeTomorrow?: () => void;
   onSnoozeNextWeek?: () => void;
+  onAiBreakdown?: (todo: Todo) => void;
   language: Language;
   secretLongPressDelay?: number;
 }
@@ -30,6 +31,7 @@ export const TodoItem = ({
   onMoveDown,
   onSnoozeTomorrow,
   onSnoozeNextWeek,
+  onAiBreakdown,
   language,
   secretLongPressDelay,
 }: TodoItemProps) => {
@@ -42,6 +44,7 @@ export const TodoItem = ({
   const showStartTimer = !todo.completed && Boolean(onStartTimer);
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
   const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
+  const showAiBreakdown = !todo.completed && !todo.isSecret && Boolean(onAiBreakdown);
   const kindBadge = todo.kind === 'reply'
     ? t(language, 'kindReply')
     : todo.kind === 'payment'
@@ -298,6 +301,21 @@ export const TodoItem = ({
               >
                 {kindBadge}
               </span>
+            )}
+            {showAiBreakdown && onAiBreakdown && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onAiBreakdown(todo);
+                }}
+                onTouchStart={stopPropagation}
+                onMouseDown={stopPropagation}
+                className="min-h-[36px] px-3 rounded-full border border-border-light
+                  text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+              >
+                AI 段取り分解
+              </button>
             )}
             <button
               type="button"

@@ -123,6 +123,55 @@ export const useTodos = () => {
     });
   }, []);
 
+  const addTodosAfter = useCallback((parentId: string, inputs: Array<string | TodoInput>) => {
+    const normalized = inputs
+      .map((input) => (typeof input === 'string' ? { text: input } : input))
+      .map((input) => ({ ...input, text: input.text.trim() }))
+      .filter((input) => input.text);
+    if (normalized.length === 0) return;
+
+    const timestamp = Date.now();
+    setTodos(prev => {
+      const parentIndex = prev.findIndex((todo) => todo.id === parentId);
+      const parent = parentIndex >= 0 ? prev[parentIndex] : null;
+      const newTodos: Todo[] = normalized.map((input, index) => ({
+        id: `todo-${timestamp}-${index}`,
+        text: input.text,
+        completed: false,
+        createdAt: timestamp + (normalized.length - index),
+        isToday: false,
+        deadlineAt: input.deadlineAt,
+        kind: input.kind,
+      }));
+      const shouldUseParentOrder = parent
+        && typeof parent.order === 'number'
+        && !parent.isSecret
+        && !parent.completed
+        && !parent.isToday;
+      if (shouldUseParentOrder) {
+        newTodos.forEach((todo, index) => {
+          todo.order = parent.order + (index + 1) * 0.01;
+        });
+      } else {
+        const nextOrder = getNextOrder(prev);
+        if (nextOrder !== null) {
+          newTodos.forEach((todo, index) => {
+            todo.order = nextOrder + index;
+          });
+        }
+      }
+      const insertIndex = parentIndex >= 0
+        ? parentIndex + 1
+        : (() => {
+          const secretIndex = prev.findIndex(t => t.isSecret);
+          return secretIndex >= 0 ? secretIndex + 1 : 0;
+        })();
+      const nextTodos = [...prev];
+      nextTodos.splice(insertIndex, 0, ...newTodos);
+      return nextTodos;
+    });
+  }, []);
+
   const addTodo = useCallback((text: string) => {
     addTodos([text]);
   }, [addTodos]);
@@ -210,6 +259,7 @@ export const useTodos = () => {
     todos: sortedTodos,
     addTodo,
     addTodos,
+    addTodosAfter,
     setTodoOrders,
     toggleTodo,
     setTodoToday,
