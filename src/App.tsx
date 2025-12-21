@@ -104,6 +104,7 @@ function App() {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
   }, [secretLongPressDelay]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!lastRoomId || currentScreen !== 'home') {
       setLastActivityAt(null);
@@ -133,6 +134,7 @@ function App() {
       isActive = false;
     };
   }, [lastRoomId, currentScreen]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
