@@ -88,6 +88,7 @@ export const JoinRoomModal = ({
     await handleCopy();
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!isQrOpen) {
       setQrDataUrl(null);
@@ -110,7 +111,7 @@ export const JoinRoomModal = ({
       margin: 2,
       errorCorrectionLevel: 'M'
     })
-      .then((url) => {
+      .then((url: string) => {
         if (isActive) {
           setQrDataUrl(url);
         }
@@ -125,6 +126,7 @@ export const JoinRoomModal = ({
       isActive = false;
     };
   }, [isQrOpen, roomKey]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
