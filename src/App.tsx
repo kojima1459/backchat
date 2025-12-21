@@ -187,6 +187,7 @@ function App() {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
   }, [secretLongPressDelay]);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const stored = localStorage.getItem(TIMER_STORAGE_KEY);
@@ -249,6 +250,7 @@ function App() {
       setShowTimerPrompt(false);
     }
   }, [activeTimer, todos]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
