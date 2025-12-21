@@ -1429,6 +1429,24 @@ function App() {
             </p>
           </div>
         )}
+
+        <footer
+          className="mt-10 pb-[calc(12px+env(safe-area-inset-bottom))]
+            text-[11px] text-text-muted leading-relaxed flex flex-wrap items-center
+            gap-x-2 gap-y-1"
+        >
+          <span>製作者：MASAHIDE KOJIMA</span>
+          <span>X：</span>
+          <a
+            href="https://x.com/kojima920"
+            target="_blank"
+            rel="noreferrer"
+            className="underline"
+          >
+            @kojima920
+          </a>
+          <span>thanks for my family</span>
+        </footer>
       </main>
       
       {/* FAB（タスク追加ボタン） */}
