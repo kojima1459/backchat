@@ -63,7 +63,7 @@ function App() {
   const reloadRequestedRef = useRef(false);
   const [connectionToast, setConnectionToast] = useState<{ message: string; persist: boolean } | null>(null);
   const previousOnlineRef = useRef(isOnline);
-  const [theme, setTheme] = useState<Theme>(resolveTheme);
+  const [theme] = useState<Theme>(resolveTheme);
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
 
   useEffect(() => {
@@ -315,9 +315,6 @@ function App() {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
-        onJoinRoom={() => setShowJoinModal(true)}
-        theme={theme}
-        onThemeChange={setTheme}
         secretLongPressDelay={secretLongPressDelay}
         onSecretLongPressDelayChange={setSecretLongPressDelay}
       />

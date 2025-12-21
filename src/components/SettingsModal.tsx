@@ -1,11 +1,8 @@
-import { X, DoorOpen, Info } from 'lucide-react';
+import { X, Info } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJoinRoom: () => void;
-  theme: 'mint' | 'mono';
-  onThemeChange: (theme: 'mint' | 'mono') => void;
   secretLongPressDelay: number;
   onSecretLongPressDelayChange: (delay: number) => void;
 }
@@ -13,17 +10,9 @@ interface SettingsModalProps {
 export const SettingsModal = ({ 
   isOpen, 
   onClose, 
-  onJoinRoom,
-  theme,
-  onThemeChange,
   secretLongPressDelay,
   onSecretLongPressDelayChange,
 }: SettingsModalProps) => {
-  const themeOptions: Array<{ value: 'mint' | 'mono'; label: string }> = [
-    { value: 'mint', label: 'ミント' },
-    { value: 'mono', label: 'モノ' },
-  ];
-
   const longPressOptions = [
     { value: 2000, label: '2s' },
     { value: 3000, label: '3s' },
@@ -54,24 +43,6 @@ export const SettingsModal = ({
         </div>
 
         <div className="space-y-2">
-          {/* ルームに入る（裏モード入口） */}
-          <button
-            onClick={() => {
-              onClose();
-              onJoinRoom();
-            }}
-            className="w-full flex items-center gap-3 p-4 bg-bg-soft rounded-xl
-              hover:bg-gray-100 transition-colors text-left"
-          >
-            <div className="w-10 h-10 bg-brand-mint/10 rounded-full flex items-center justify-center">
-              <DoorOpen className="w-5 h-5 text-brand-mint" />
-            </div>
-            <div>
-              <div className="font-medium text-text-main">ルームに入る</div>
-              <div className="text-sm text-text-muted">共有キーでルームに参加</div>
-            </div>
-          </button>
-
           {/* アプリ情報 */}
           <button
             className="w-full flex items-center gap-3 p-4 bg-bg-soft rounded-xl
@@ -89,30 +60,7 @@ export const SettingsModal = ({
 
         <div className="mt-6 border-t border-border-light pt-4 space-y-4">
           <div>
-            <div className="text-xs text-text-muted mb-2">テーマ</div>
-            <div className="flex gap-2">
-              {themeOptions.map((option) => {
-                const isActive = theme === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => onThemeChange(option.value)}
-                    className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium
-                      transition-colors
-                      ${isActive
-                        ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
-                        : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
-                      }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-text-muted mb-2">裏モード長押し</div>
+            <div className="text-xs text-text-muted mb-2">長押し時間</div>
             <div className="grid grid-cols-4 gap-2">
               {longPressOptions.map((option) => {
                 const isActive = secretLongPressDelay === option.value;
