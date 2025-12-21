@@ -553,31 +553,33 @@ function App() {
       
       {/* メインコンテンツ */}
       <main className="px-4 pb-24">
-        <div className="flex items-end justify-between mb-2 mt-2">
-          <h2 className="text-sm font-bold text-text-sub">
-            今日
-          </h2>
-          <p className="text-xs text-text-muted">
-            最終更新: {formatTimeAgo(lastActivityAt)}
-          </p>
-        </div>
+        <div className="todaySticky">
+          <div className="flex items-end justify-between mb-2 mt-2">
+            <h2 className="text-sm font-bold text-text-sub">
+              今日3つ
+            </h2>
+            <p className="text-xs text-text-muted">
+              最終更新: {formatTimeAgo(lastActivityAt)}
+            </p>
+          </div>
 
-        <div className="space-y-2">
-          {todayTodos.length > 0 ? (
-            todayTodos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={handleToggle}
-                onToggleToday={handleToggleToday}
-                onStartTimer={handleStartTimer}
-                onDelete={deleteTodo}
-                secretLongPressDelay={secretLongPressDelay}
-              />
-            ))
-          ) : hasVisibleTodos ? (
-            <p className="text-sm text-text-muted py-2">今日のタスクはありません</p>
-          ) : null}
+          <div className="space-y-2">
+            {todayTodos.length > 0 ? (
+              todayTodos.map((todo) => (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={handleToggle}
+                  onToggleToday={handleToggleToday}
+                  onStartTimer={handleStartTimer}
+                  onDelete={deleteTodo}
+                  secretLongPressDelay={secretLongPressDelay}
+                />
+              ))
+            ) : hasVisibleTodos ? (
+              <p className="text-sm text-text-muted py-2">今日のタスクはありません</p>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex items-center justify-between mt-6 mb-2">

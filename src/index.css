@@ -94,6 +94,14 @@ html {
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 
+.todaySticky {
+  position: sticky;
+  top: calc(60px + env(safe-area-inset-top));
+  z-index: 20;
+  background: var(--color-bg-soft);
+  padding-bottom: 8px;
+}
+
 .tap-target {
   min-width: 44px;
   min-height: 44px;
