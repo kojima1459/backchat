@@ -102,6 +102,10 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     onBack();
   }, [onBack]);
 
+  const openLabelEditor = useCallback(() => {
+    setIsLabelEditorOpen(true);
+  }, []);
+
   const handleSaveLabel = () => {
     const trimmed = labelInput.trim();
     saveRoomLabel(roomId, trimmed);
@@ -161,7 +165,7 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
     <div className="fixed inset-0 h-[100dvh] bg-bg-soft flex flex-col z-50">
       {/* ヘッダー */}
       <header className="bg-card-white border-b border-border-light safe-area-top">
-        <div className="flex items-center px-4 py-3">
+        <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2 px-4 py-3">
           <button
             onClick={handleExit}
             className="text-sm font-semibold text-text-sub hover:text-text-main transition-colors"
@@ -169,17 +173,19 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
             ← 戻る
           </button>
 
-          <div className="flex-1 flex items-center justify-center px-4">
+          <div className="min-w-0 flex items-center justify-center px-2">
             <button
               type="button"
-              onClick={() => setIsLabelEditorOpen(true)}
-              className="text-sm font-medium text-text-main truncate hover:text-text-sub transition-colors"
+              onClick={openLabelEditor}
+              onTouchEnd={openLabelEditor}
+              className="text-sm font-medium text-text-main truncate hover:text-text-sub transition-colors
+                px-2 py-1 rounded-md pointer-events-auto"
             >
               {roomLabel || 'メモ'}
             </button>
           </div>
           
-          <div className="relative">
+          <div className="relative flex justify-end">
             <button
               onClick={openActions}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
