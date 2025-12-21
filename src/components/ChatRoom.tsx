@@ -1,20 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, DoorOpen, MoreVertical, Send, Trash2, X } from 'lucide-react';
 import type { MessageData } from '../services/message';
 import { subscribeMessages, sendMessage, markAsRead } from '../services/message';
-import { deleteRoom } from '../services/room';
+import { deleteRoom, leaveRoom } from '../services/room';
 
 interface ChatRoomProps {
   roomId: string;
   uid: string;
   onBack: () => void;
   onRoomDeleted: () => void;
+  onRoomLeft: () => void;
 }
 
-export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted }: ChatRoomProps) => {
+export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: ChatRoomProps) => {
   const [messages, setMessages] = useState<MessageData[]>([]);
   const [inputText, setInputText] = useState('');
-  const [showMenu, setShowMenu] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,14 +68,52 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted }: ChatRoomProps) 
     }
   };
 
-  const handleDeleteRoom = async () => {
-    if (confirm('本当にルームを削除しますか？')) {
-      const success = await deleteRoom(roomId);
-      if (success) {
-        onRoomDeleted();
-      }
+  const openActions = () => {
+    setActionError(null);
+    setShowDeleteConfirm(false);
+    setShowActions(true);
+  };
+
+  const closeActions = () => {
+    setShowActions(false);
+    setShowDeleteConfirm(false);
+    setActionError(null);
+  };
+
+  const handleLeaveRoom = async () => {
+    if (isLeaving || isDeleting) return;
+    setIsLeaving(true);
+    setActionError(null);
+
+    const success = await leaveRoom(roomId, uid);
+
+    setIsLeaving(false);
+
+    if (success) {
+      closeActions();
+      onRoomLeft();
+      return;
     }
-    setShowMenu(false);
+
+    setActionError('退出できませんでした。ルームが削除されている可能性があります。');
+  };
+
+  const handleDeleteRoom = async () => {
+    if (isLeaving || isDeleting) return;
+    setIsDeleting(true);
+    setActionError(null);
+
+    const success = await deleteRoom(roomId);
+
+    setIsDeleting(false);
+
+    if (success) {
+      closeActions();
+      onRoomDeleted();
+      return;
+    }
+
+    setActionError('削除に失敗しました。もう一度試してください。');
   };
 
   // roomIdの最初の4文字を表示用に使用
@@ -94,39 +137,11 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted }: ChatRoomProps) 
           
           <div className="relative">
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={openActions}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
               <MoreVertical className="w-6 h-6 text-text-sub" />
             </button>
-            
-            {/* ドロップダウンメニュー */}
-            {showMenu && (
-              <>
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 w-48 bg-card-white 
-                  rounded-xl shadow-lg border border-border-light z-20 overflow-hidden">
-                  <button
-                    onClick={onBack}
-                    className="w-full px-4 py-3 text-left text-text-main
-                      hover:bg-gray-50 transition-colors"
-                  >
-                    Homeへ戻る
-                  </button>
-                  <button
-                    onClick={handleDeleteRoom}
-                    className="w-full px-4 py-3 text-left text-error
-                      hover:bg-error/5 transition-colors flex items-center gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    ルームを削除
-                  </button>
-                </div>
-              </>
-            )}
           </div>
         </div>
       </header>
@@ -177,6 +192,88 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted }: ChatRoomProps) 
           </button>
         </div>
       </div>
+
+      {showActions && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={closeActions}
+        >
+          <div
+            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-text-main">ルーム操作</h2>
+              <button
+                onClick={closeActions}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-text-sub" />
+              </button>
+            </div>
+
+            <div className="bg-bg-soft rounded-xl p-4 text-sm text-text-sub">
+              <p>一時退出はあなたのみ退室し、ルームとキーは残ります。</p>
+              <p className="mt-2">完全削除はルーム自体を消去し、復元できません。</p>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <button
+                onClick={handleLeaveRoom}
+                disabled={isLeaving || isDeleting}
+                className="w-full flex items-center justify-center gap-2 py-3
+                  bg-brand-mint text-white font-bold rounded-xl
+                  hover:bg-main-deep transition-colors
+                  disabled:bg-border-light disabled:cursor-not-allowed"
+              >
+                <DoorOpen className="w-4 h-4" />
+                {isLeaving ? '退出中...' : '一時退出（キーは残る）'}
+              </button>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setActionError(null);
+                    setShowDeleteConfirm(true);
+                  }}
+                  disabled={isLeaving || isDeleting}
+                  className="w-full flex items-center justify-center gap-2 py-3
+                    bg-error/10 text-error font-bold rounded-xl border border-error/20
+                    hover:bg-error/20 transition-colors
+                    disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  完全削除（復元不可）
+                </button>
+
+                {showDeleteConfirm && (
+                  <div className="rounded-xl border border-error/20 bg-error/5 p-4">
+                    <p className="text-sm text-error font-medium">
+                      本当に完全削除しますか？この操作は戻せません。
+                    </p>
+                    <button
+                      onClick={handleDeleteRoom}
+                      disabled={isLeaving || isDeleting}
+                      className="w-full mt-3 flex items-center justify-center gap-2 py-2.5
+                        bg-error text-white font-bold rounded-xl
+                        hover:bg-error/90 transition-colors
+                        disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {isDeleting ? '削除中...' : '完全削除を実行'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {actionError && (
+                <p className="text-sm text-error">{actionError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

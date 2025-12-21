@@ -41,6 +41,7 @@ const POSITIVE_MESSAGES = [
   '完璧！',
 ];
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const getRandomPositiveMessage = () => {
   return POSITIVE_MESSAGES[Math.floor(Math.random() * POSITIVE_MESSAGES.length)];
 };
