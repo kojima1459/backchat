@@ -37,6 +37,7 @@ const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const TEN_MINUTES_MS = 10 * 60 * 1000;
 const WORK_PLAN_STEPS = [
   '① 完了条件を書く（5分）',
   '② 素材を集める（10分）',
@@ -146,6 +147,7 @@ function App() {
   const [lastActivityAt, setLastActivityAt] = useState<Date | null>(null);
   const [activeTimer, setActiveTimer] = useState<{ todoId: string; endsAt: number } | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
+  const [showTimerPrompt, setShowTimerPrompt] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -187,19 +189,30 @@ function App() {
   useEffect(() => {
     if (!activeTimer) {
       setRemainingMs(0);
+      setShowTimerPrompt(false);
       return;
     }
 
     const updateRemaining = () => {
       const diff = activeTimer.endsAt - Date.now();
-      setRemainingMs(Math.max(0, diff));
       if (diff <= 0) {
-        setActiveTimer(null);
+        setRemainingMs(0);
+        setShowTimerPrompt(true);
+        return true;
       }
+      setRemainingMs(diff);
+      return false;
     };
 
-    updateRemaining();
-    const intervalId = window.setInterval(updateRemaining, 1000);
+    if (updateRemaining()) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (updateRemaining()) {
+        window.clearInterval(intervalId);
+      }
+    }, 1000);
     return () => window.clearInterval(intervalId);
   }, [activeTimer]);
 
@@ -332,10 +345,12 @@ function App() {
 
   const handleStartTimer = useCallback((id: string) => {
     setActiveTimer({ todoId: id, endsAt: Date.now() + FIVE_MINUTES_MS });
+    setShowTimerPrompt(false);
   }, []);
 
   const handleStopTimer = useCallback(() => {
     setActiveTimer(null);
+    setShowTimerPrompt(false);
   }, []);
 
   const handleCompleteFromTimer = useCallback(() => {
@@ -345,7 +360,19 @@ function App() {
       toggleTodo(target.id);
     }
     setActiveTimer(null);
+    setShowTimerPrompt(false);
   }, [activeTimer, todos, toggleTodo]);
+
+  const handleContinueTimer = useCallback(() => {
+    if (!activeTimer) return;
+    setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + TEN_MINUTES_MS });
+    setShowTimerPrompt(false);
+  }, [activeTimer]);
+
+  const handleStopFromPrompt = useCallback(() => {
+    setActiveTimer(null);
+    setShowTimerPrompt(false);
+  }, []);
 
   const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
     if (type === 'workPlan') {
@@ -620,6 +647,51 @@ function App() {
                   text-sm font-semibold hover:bg-main-deep transition-colors"
               >
                 完了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTimerPrompt && activeTimer && activeTimerTodo && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+          <div
+            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+          >
+            <div className="mb-4">
+              <p className="text-sm text-text-muted">5分経ちました</p>
+              <h2 className="text-lg font-bold text-text-main">
+                次はどうする？
+              </h2>
+            </div>
+            <p className="text-sm text-text-sub mb-4 truncate">
+              {activeTimerTodo.text}
+            </p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleContinueTimer}
+                className="w-full py-3 bg-brand-mint text-white font-bold rounded-xl
+                  hover:bg-main-deep transition-colors"
+              >
+                続ける（10分）
+              </button>
+              <button
+                type="button"
+                onClick={handleStopFromPrompt}
+                className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
+                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
+              >
+                次へ移る
+              </button>
+              <button
+                type="button"
+                onClick={handleStopFromPrompt}
+                className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
+                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
+              >
+                いったん終了
               </button>
             </div>
           </div>
