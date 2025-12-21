@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { Settings } from 'lucide-react';
+import { HelpCircle, Settings } from 'lucide-react';
 import { useLongPress } from '../hooks/useLongPress';
 
 interface HeaderProps {
+  onHelpClick: () => void;
   onSettingsClick: () => void;
   onSecretLongPress: () => void;
   secretLongPressDelay: number;
 }
 
-export const Header = ({ onSettingsClick, onSecretLongPress, secretLongPressDelay }: HeaderProps) => {
+export const Header = ({
+  onHelpClick,
+  onSettingsClick,
+  onSecretLongPress,
+  secretLongPressDelay,
+}: HeaderProps) => {
   const [isPressed, setIsPressed] = useState(false);
   const titleLongPress = useLongPress({
     onLongPress: onSecretLongPress,
@@ -55,13 +61,22 @@ export const Header = ({ onSettingsClick, onSecretLongPress, secretLongPressDela
         >
           しれっとToDo
         </h1>
-        <button
-          onClick={onSettingsClick}
-          className="tap-target p-2 hover:bg-gray-100 transition-colors"
-          aria-label="設定"
-        >
-          <Settings className="w-6 h-6 text-text-sub" strokeWidth={1.75} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onHelpClick}
+            className="tap-target p-2 hover:bg-gray-100 transition-colors"
+            aria-label="ヘルプ"
+          >
+            <HelpCircle className="w-6 h-6 text-text-sub" strokeWidth={1.75} />
+          </button>
+          <button
+            onClick={onSettingsClick}
+            className="tap-target p-2 hover:bg-gray-100 transition-colors"
+            aria-label="設定"
+          >
+            <Settings className="w-6 h-6 text-text-sub" strokeWidth={1.75} />
+          </button>
+        </div>
       </div>
     </header>
   );

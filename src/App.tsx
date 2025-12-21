@@ -14,6 +14,7 @@ import { AddTodoModal, type TodoCreateType } from './components/AddTodoModal';
 import { SettingsModal } from './components/SettingsModal';
 import { JoinRoomModal } from './components/JoinRoomModal';
 import { ChatRoom } from './components/ChatRoom';
+import { GuideOverlay } from './components/GuideOverlay';
 import { Toast, getRandomPositiveMessage } from './components/Toast';
 import { useTodos } from './hooks/useTodos';
 import { useAuth } from './contexts/AuthContext';
@@ -363,6 +364,7 @@ function App() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   
   // チャット状態
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
@@ -1080,6 +1082,7 @@ function App() {
   return (
     <div className="min-h-screen bg-bg-soft">
       <Header
+        onHelpClick={() => setShowGuide(true)}
         onSettingsClick={() => setShowSettingsModal(true)}
         onSecretLongPress={handleSecretLongPress}
         secretLongPressDelay={secretLongPressDelay}
@@ -1242,6 +1245,12 @@ function App() {
         onThemeSettingChange={setThemeSetting}
         language={language}
         onLanguageChange={setLanguage}
+      />
+
+      <GuideOverlay
+        isOpen={showGuide}
+        onClose={() => setShowGuide(false)}
+        language={language}
       />
 
       {aiBreakdownTodo && (
