@@ -116,10 +116,17 @@ const formatTimeAgo = (date: Date | null): string => {
   return `${days}日前`;
 };
 
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
-  const { todos, addTodo, addTodos, setTodoOrders, toggleTodo, setTodoToday, deleteTodo, editTodo, isLoaded } = useTodos();
+  const { todos, addTodo, addTodos, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
   
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
@@ -442,6 +449,12 @@ function App() {
     editTodo(id, text);
   }, [editTodo]);
 
+  const handleSnoozeTodo = useCallback((id: string, days: number) => {
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + days);
+    snoozeTodo(id, formatDateKey(nextDate));
+  }, [snoozeTodo]);
+
   // 裏モード入口（長押し）
   const handleSecretLongPress = useCallback(() => {
     setShowJoinModal(true);
@@ -542,9 +555,14 @@ function App() {
     );
   }
 
-  const todayTodos = todos.filter((todo) => todo.isToday);
+  const todayKey = formatDateKey(new Date());
+  const isSnoozedTodo = (todo: typeof todos[number]) =>
+    Boolean(todo.snoozeUntil && todo.snoozeUntil > todayKey);
+  const todayTodos = todos.filter((todo) => todo.isToday && !isSnoozedTodo(todo));
   const backlogTodos = todos.filter((todo) => !todo.isToday);
-  const backlogActiveIds = backlogTodos
+  const visibleBacklogTodos = backlogTodos.filter((todo) => !isSnoozedTodo(todo));
+  const snoozedCount = backlogTodos.length - visibleBacklogTodos.length;
+  const backlogActiveIds = visibleBacklogTodos
     .filter((todo) => !todo.completed && !todo.isSecret)
     .map((todo) => todo.id);
   const hasVisibleTodos = todos.some((todo) => !todo.isSecret);
@@ -641,11 +659,12 @@ function App() {
         </div>
 
         <div className="space-y-2">
-          {backlogTodos.length > 0 ? (
-            backlogTodos.map((todo) => {
+          {visibleBacklogTodos.length > 0 ? (
+            visibleBacklogTodos.map((todo) => {
               const index = backlogActiveIds.indexOf(todo.id);
               const canMoveUp = index > 0;
               const canMoveDown = index !== -1 && index < backlogActiveIds.length - 1;
+              const canSnooze = !todo.completed;
               return (
                 <TodoItem
                   key={todo.id}
@@ -656,6 +675,8 @@ function App() {
                   onEdit={handleEditTodo}
                   onMoveUp={canMoveUp ? () => handleMoveBacklog(todo.id, -1) : undefined}
                   onMoveDown={canMoveDown ? () => handleMoveBacklog(todo.id, 1) : undefined}
+                  onSnoozeTomorrow={canSnooze ? () => handleSnoozeTodo(todo.id, 1) : undefined}
+                  onSnoozeNextWeek={canSnooze ? () => handleSnoozeTodo(todo.id, 7) : undefined}
                   onDelete={deleteTodo}
                   secretLongPressDelay={secretLongPressDelay}
                 />
@@ -665,6 +686,12 @@ function App() {
             <p className="text-sm text-text-muted py-2">バックログは空です</p>
           ) : null}
         </div>
+
+        {snoozedCount > 0 && (
+          <p className="text-xs text-text-muted mt-3">
+            スヌーズ中（{snoozedCount}）
+          </p>
+        )}
         
         {!hasVisibleTodos && (
           <div className="text-center py-12">

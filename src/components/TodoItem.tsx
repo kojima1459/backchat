@@ -12,6 +12,8 @@ interface TodoItemProps {
   onEdit: (id: string, text: string) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onSnoozeTomorrow?: () => void;
+  onSnoozeNextWeek?: () => void;
   secretLongPressDelay?: number;
 }
 
@@ -24,6 +26,8 @@ export const TodoItem = ({
   onEdit,
   onMoveUp,
   onMoveDown,
+  onSnoozeTomorrow,
+  onSnoozeNextWeek,
   secretLongPressDelay,
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
@@ -34,6 +38,7 @@ export const TodoItem = ({
   const isToday = Boolean(todo.isToday);
   const showStartTimer = !todo.completed;
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
+  const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
 
   const stopPropagation = (event: React.SyntheticEvent) => {
     event.stopPropagation();
@@ -231,6 +236,34 @@ export const TodoItem = ({
                     text-xs text-text-sub hover:bg-gray-100 transition-colors disabled:opacity-40"
                 >
                   ↓
+                </button>
+              </div>
+            )}
+            {showSnooze && (
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSnoozeTomorrow?.();
+                  }}
+                  disabled={!onSnoozeTomorrow}
+                  className="min-h-[32px] min-w-[44px] rounded-md border border-border-light
+                    text-xs text-text-sub hover:bg-gray-100 transition-colors disabled:opacity-40"
+                >
+                  明日
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onSnoozeNextWeek?.();
+                  }}
+                  disabled={!onSnoozeNextWeek}
+                  className="min-h-[32px] min-w-[44px] rounded-md border border-border-light
+                    text-xs text-text-sub hover:bg-gray-100 transition-colors disabled:opacity-40"
+                >
+                  来週
                 </button>
               </div>
             )}

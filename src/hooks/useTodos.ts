@@ -151,6 +151,22 @@ export const useTodos = () => {
     );
   }, []);
 
+  // スヌーズ（延期）
+  const snoozeTodo = useCallback((id: string, snoozeUntil: string) => {
+    setTodos(prev =>
+      prev.map(todo =>
+        todo.id === id
+          ? {
+            ...todo,
+            snoozeUntil,
+            deferCount: (todo.deferCount ?? 0) + 1,
+            isToday: false,
+          }
+          : todo
+      )
+    );
+  }, []);
+
   // タスク削除
   const deleteTodo = useCallback((id: string) => {
     setTodos(prev => prev.filter(todo => todo.id !== id && !todo.isSecret));
@@ -192,6 +208,7 @@ export const useTodos = () => {
     setTodoOrders,
     toggleTodo,
     setTodoToday,
+    snoozeTodo,
     deleteTodo,
     editTodo,
     isLoaded,

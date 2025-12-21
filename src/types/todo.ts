@@ -6,6 +6,8 @@ export interface Todo {
   isSecret?: boolean; // 裏モード用のダミータスクかどうか
   isToday?: boolean;
   order?: number;
+  deferCount?: number;
+  snoozeUntil?: string;
 }
 
 export interface Room {
