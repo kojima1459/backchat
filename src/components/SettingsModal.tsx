@@ -1,10 +1,17 @@
-import { X, Info } from 'lucide-react';
+import { X } from 'lucide-react';
+import { t, type Language } from '../i18n';
+
+type ThemeSetting = 'system' | 'light' | 'dark';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   secretLongPressDelay: number;
   onSecretLongPressDelayChange: (delay: number) => void;
+  themeSetting: ThemeSetting;
+  onThemeSettingChange: (setting: ThemeSetting) => void;
+  language: Language;
+  onLanguageChange: (language: Language) => void;
 }
 
 export const SettingsModal = ({ 
@@ -12,15 +19,28 @@ export const SettingsModal = ({
   onClose, 
   secretLongPressDelay,
   onSecretLongPressDelayChange,
+  themeSetting,
+  onThemeSettingChange,
+  language,
+  onLanguageChange,
 }: SettingsModalProps) => {
   const versionLabel = __APP_COMMIT__
     ? `v${__APP_VERSION__} (${__APP_COMMIT__})`
     : `v${__APP_VERSION__}`;
-  const longPressOptions = [
-    { value: 2000, label: '2s' },
-    { value: 3000, label: '3s' },
-    { value: 5000, label: '5s' },
-    { value: 8000, label: '8s' },
+  const themeOptions: Array<{ value: ThemeSetting; labelKey: Parameters<typeof t>[1] }> = [
+    { value: 'system', labelKey: 'themeSystem' },
+    { value: 'light', labelKey: 'themeLight' },
+    { value: 'dark', labelKey: 'themeDark' },
+  ];
+  const languageOptions: Array<{ value: Language; labelKey: Parameters<typeof t>[1] }> = [
+    { value: 'ja', labelKey: 'langJa' },
+    { value: 'en', labelKey: 'langEn' },
+  ];
+  const longPressOptions: Array<{ value: number; labelKey: Parameters<typeof t>[1] }> = [
+    { value: 2000, labelKey: 'longPressShort' },
+    { value: 3000, labelKey: 'longPressStandard' },
+    { value: 5000, labelKey: 'longPressLong' },
+    { value: 8000, labelKey: 'longPressCustom' },
   ];
 
   if (!isOpen) return null;
@@ -36,7 +56,7 @@ export const SettingsModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-text-main">設定</h2>
+          <h2 className="text-lg font-bold text-text-main">{t(language, 'settingsTitle')}</h2>
           <button
             onClick={onClose}
             className="tap-target p-2 hover:bg-gray-100 transition-colors"
@@ -45,51 +65,124 @@ export const SettingsModal = ({
           </button>
         </div>
 
-        <div className="space-y-2">
-          {/* アプリ情報 */}
-          <button
-            className="w-full flex items-center gap-3 p-4 bg-bg-soft rounded-xl
-              hover:bg-gray-100 transition-colors text-left"
-          >
-            <div className="w-10 h-10 bg-text-muted/10 rounded-full flex items-center justify-center">
-              <Info className="w-5 h-5 text-text-muted" />
+        <div className="space-y-6">
+          <section>
+            <p className="text-xs font-semibold text-text-muted mb-2">
+              {t(language, 'sectionDisplay')}
+            </p>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-medium text-text-main mb-2">
+                  {t(language, 'labelTheme')}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {themeOptions.map((option) => {
+                    const isActive = themeSetting === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => onThemeSettingChange(option.value)}
+                        className={`px-2 py-2 rounded-lg border text-sm font-medium
+                          transition-colors
+                          ${isActive
+                            ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                            : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                          }`}
+                      >
+                        {t(language, option.labelKey)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-text-main mb-2">
+                  {t(language, 'labelLanguage')}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {languageOptions.map((option) => {
+                    const isActive = language === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => onLanguageChange(option.value)}
+                        className={`px-2 py-2 rounded-lg border text-sm font-medium
+                          transition-colors
+                          ${isActive
+                            ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                            : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                          }`}
+                      >
+                        {t(language, option.labelKey)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
+          </section>
+
+          <section>
+            <p className="text-xs font-semibold text-text-muted mb-2">
+              {t(language, 'sectionControls')}
+            </p>
             <div>
-              <div className="font-medium text-text-main">アプリについて</div>
-              <div className="text-sm text-text-muted">バージョン 1.0.0</div>
+              <div className="text-sm font-medium text-text-main mb-2">
+                {t(language, 'labelLongPress')}
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {longPressOptions.map((option) => {
+                  const isActive = secretLongPressDelay === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => onSecretLongPressDelayChange(option.value)}
+                      className={`px-2 py-2 rounded-lg border text-sm font-medium
+                        transition-colors
+                        ${isActive
+                          ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                          : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                        }`}
+                    >
+                      {t(language, option.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </button>
-        </div>
+          </section>
 
-        <div className="mt-6 border-t border-border-light pt-4 space-y-4">
-          <div>
-            <div className="text-xs text-text-muted mb-2">長押し時間</div>
-            <div className="grid grid-cols-4 gap-2">
-              {longPressOptions.map((option) => {
-                const isActive = secretLongPressDelay === option.value;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => onSecretLongPressDelayChange(option.value)}
-                    className={`px-2 py-2 rounded-lg border text-sm font-medium
-                      transition-colors
-                      ${isActive
-                        ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
-                        : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
-                      }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+          <section>
+            <p className="text-xs font-semibold text-text-muted mb-2">
+              {t(language, 'sectionData')}
+            </p>
+            <div className="flex items-center justify-between p-3 bg-bg-soft rounded-lg">
+              <span className="text-sm font-medium text-text-main">
+                {t(language, 'labelStorage')}
+              </span>
+              <span className="text-xs text-text-muted">
+                {t(language, 'valueStorageDevice')}
+              </span>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <p className="mt-4 text-[11px] text-text-muted text-center">
-          {versionLabel}
-        </p>
+          <section>
+            <p className="text-xs font-semibold text-text-muted mb-2">
+              {t(language, 'sectionAbout')}
+            </p>
+            <div className="flex items-center justify-between p-3 bg-bg-soft rounded-lg">
+              <span className="text-sm font-medium text-text-main">
+                {t(language, 'labelVersion')}
+              </span>
+              <span className="text-xs text-text-muted">
+                {versionLabel}
+              </span>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

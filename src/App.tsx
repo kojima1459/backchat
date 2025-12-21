@@ -20,9 +20,10 @@ import { useAuth } from './contexts/AuthContext';
 import { joinRoom, getRoom } from './services/room';
 import type { JoinRoomErrorCode } from './services/room';
 import { setRoomLabel } from './services/roomLabel';
+import type { Language } from './i18n';
 
 type Screen = 'home' | 'chat';
-type Theme = 'mint' | 'mono';
+type ThemeSetting = 'system' | 'light' | 'dark';
 
 const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
   deleted: 'この共有は削除されました',
@@ -31,14 +32,33 @@ const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
 };
 
 const THEME_STORAGE_KEY = 'theme';
+const LANGUAGE_STORAGE_KEY = 'language';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
 
-const resolveTheme = (): Theme => {
-  if (typeof window === 'undefined') return 'mint';
+const resolveThemeSetting = (): ThemeSetting => {
+  if (typeof window === 'undefined') return 'system';
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
-  return stored === 'mono' ? 'mono' : 'mint';
+  if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    return stored;
+  }
+  if (stored === 'mint' || stored === 'mono') {
+    return 'light';
+  }
+  return 'system';
+};
+
+const resolveSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined' || !window.matchMedia) return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const resolveLanguage = (): Language => {
+  if (typeof window === 'undefined') return 'ja';
+  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  if (stored === 'ja' || stored === 'en') return stored;
+  return navigator.language.toLowerCase().startsWith('ja') ? 'ja' : 'en';
 };
 
 const resolveLongPressDelay = (): number => {
@@ -91,15 +111,44 @@ function App() {
   const reloadRequestedRef = useRef(false);
   const [connectionToast, setConnectionToast] = useState<{ message: string; persist: boolean } | null>(null);
   const previousOnlineRef = useRef(isOnline);
-  const [theme] = useState<Theme>(resolveTheme);
+  const [themeSetting, setThemeSetting] = useState<ThemeSetting>(resolveThemeSetting);
+  const [language, setLanguage] = useState<Language>(resolveLanguage);
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
   const [lastRoomId, setLastRoomId] = useState(resolveLastRoomId);
   const [lastActivityAt, setLastActivityAt] = useState<Date | null>(null);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
+    if (typeof window === 'undefined') return;
+
+    const applyTheme = (resolved: 'light' | 'dark') => {
+      document.documentElement.dataset.theme = resolved;
+    };
+
+    const resolvedTheme = themeSetting === 'system' ? resolveSystemTheme() : themeSetting;
+    applyTheme(resolvedTheme);
+    localStorage.setItem(THEME_STORAGE_KEY, themeSetting);
+
+    if (themeSetting !== 'system' || !window.matchMedia) return;
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      applyTheme(media.matches ? 'dark' : 'light');
+    };
+
+    if (media.addEventListener) {
+      media.addEventListener('change', handleChange);
+      return () => media.removeEventListener('change', handleChange);
+    }
+
+    media.addListener(handleChange);
+    return () => media.removeListener(handleChange);
+  }, [themeSetting]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    document.documentElement.lang = language;
+  }, [language]);
 
   useEffect(() => {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
@@ -392,6 +441,10 @@ function App() {
         onClose={() => setShowSettingsModal(false)}
         secretLongPressDelay={secretLongPressDelay}
         onSecretLongPressDelayChange={setSecretLongPressDelay}
+        themeSetting={themeSetting}
+        onThemeSettingChange={setThemeSetting}
+        language={language}
+        onLanguageChange={setLanguage}
       />
       
       <JoinRoomModal
