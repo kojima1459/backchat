@@ -276,8 +276,16 @@ function App() {
   const handleToggleToday = useCallback((id: string) => {
     const target = todos.find((todo) => todo.id === id);
     if (!target) return;
-    setTodoToday(id, !target.isToday);
-  }, [setTodoToday, todos]);
+    const nextValue = !target.isToday;
+    if (nextValue) {
+      const todayCount = todos.filter((todo) => todo.isToday).length;
+      if (todayCount >= 3) {
+        setToast('今日は3つまで');
+        return;
+      }
+    }
+    setTodoToday(id, nextValue);
+  }, [setTodoToday, setToast, todos]);
 
   const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
     if (type === 'workPlan') {
