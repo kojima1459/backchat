@@ -36,6 +36,7 @@ const LANGUAGE_STORAGE_KEY = 'language';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
+const TIMER_STORAGE_KEY = 'todoTimer';
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const WORK_PLAN_STEPS = [
@@ -187,6 +188,30 @@ function App() {
   }, [secretLongPressDelay]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem(TIMER_STORAGE_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored) as { todoId?: string; endsAt?: number };
+      if (parsed.todoId && typeof parsed.endsAt === 'number') {
+        setActiveTimer({ todoId: parsed.todoId, endsAt: parsed.endsAt });
+      }
+    } catch {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!activeTimer) {
+      localStorage.removeItem(TIMER_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(activeTimer));
+  }, [activeTimer]);
+
+  useEffect(() => {
     if (!activeTimer) {
       setRemainingMs(0);
       setShowTimerPrompt(false);
@@ -215,6 +240,15 @@ function App() {
     }, 1000);
     return () => window.clearInterval(intervalId);
   }, [activeTimer]);
+
+  useEffect(() => {
+    if (!activeTimer) return;
+    const target = todos.find((todo) => todo.id === activeTimer.todoId);
+    if (!target || target.completed) {
+      setActiveTimer(null);
+      setShowTimerPrompt(false);
+    }
+  }, [activeTimer, todos]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
