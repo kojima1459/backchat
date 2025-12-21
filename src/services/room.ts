@@ -69,7 +69,7 @@ export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomRe
         
         return { success: true as const, roomId, isNew: true };
       }
-    });
+    }) as JoinRoomResult;
     
     return result;
   } catch (error) {
