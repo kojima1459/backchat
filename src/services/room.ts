@@ -19,7 +19,9 @@ export interface RoomData {
 
 export type JoinRoomResult = 
   | { success: true; roomId: string; isNew: boolean }
-  | { success: false; error: string };
+  | { success: false; error: JoinRoomErrorCode };
+
+export type JoinRoomErrorCode = 'deleted' | 'full' | 'unknown';
 
 // ルームに参加（存在しなければ作成）
 export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomResult> => {
@@ -35,7 +37,7 @@ export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomRe
         
         // 削除済みチェック
         if (data.deletedAt) {
-          return { success: false as const, error: 'この共有は削除されました' };
+          return { success: false as const, error: 'deleted' };
         }
         
         // 既に参加済みかチェック
@@ -45,7 +47,7 @@ export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomRe
         
         // 満員チェック
         if (data.participantUids.length >= 2) {
-          return { success: false as const, error: 'この共有、もう満員やった🥲' };
+          return { success: false as const, error: 'full' };
         }
         
         // 参加者に追加
@@ -72,10 +74,7 @@ export const joinRoom = async (roomKey: string, uid: string): Promise<JoinRoomRe
     return result;
   } catch (error) {
     console.error('Join room error:', error);
-    if (error instanceof Error) {
-      return { success: false, error: error.message };
-    }
-    return { success: false, error: 'うまく同期できなかった' };
+    return { success: false, error: 'unknown' };
   }
 };
 

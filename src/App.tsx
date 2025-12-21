@@ -18,9 +18,16 @@ import { Toast, getRandomPositiveMessage } from './components/Toast';
 import { useTodos } from './hooks/useTodos';
 import { useAuth } from './contexts/AuthContext';
 import { joinRoom } from './services/room';
+import type { JoinRoomErrorCode } from './services/room';
 
 type Screen = 'home' | 'chat';
 type Theme = 'mint' | 'mono';
+
+const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
+  deleted: 'この共有は削除されました',
+  full: 'この共有、もう満員やった🥲',
+  unknown: 'うまく同期できなかった',
+};
 
 const THEME_STORAGE_KEY = 'theme';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
@@ -189,7 +196,7 @@ function App() {
         setToast('共有を作成しました');
       }
     } else {
-      setJoinError(result.error);
+      setJoinError(JOIN_ROOM_ERROR_MESSAGES[result.error]);
     }
   }, [uid, isOnline]);
 
