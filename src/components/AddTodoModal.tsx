@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 
+type TodoCreateType = 'normal' | 'workPlan';
+
 interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,12 +11,18 @@ interface AddTodoModalProps {
 
 export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
   const [text, setText] = useState('');
+  const [taskType, setTaskType] = useState<TodoCreateType>('normal');
   const inputRef = useRef<HTMLInputElement>(null);
+  const typeOptions: Array<{ value: TodoCreateType; label: string }> = [
+    { value: 'normal', label: '通常' },
+    { value: 'workPlan', label: '仕事の段取り' },
+  ];
 
   useEffect(() => {
     if (isOpen) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setText('');
+      setTaskType('normal');
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen]);
@@ -51,6 +59,29 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
         </div>
 
         <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <div className="text-xs text-text-muted mb-2">種類</div>
+            <div className="grid grid-cols-2 gap-2">
+              {typeOptions.map((option) => {
+                const isActive = taskType === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setTaskType(option.value)}
+                    className={`min-h-[44px] px-3 py-2 rounded-lg border text-sm font-medium
+                      transition-colors
+                      ${isActive
+                        ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                        : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <input
             ref={inputRef}
             type="text"
