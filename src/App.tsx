@@ -33,7 +33,12 @@ import {
 type Screen = 'home' | 'chat';
 type ThemeSetting = 'system' | 'light' | 'dark';
 type TimerPhase = 'start' | 'focus' | 'rest';
-type AiStep = { title: string; minutes: number };
+type AiStep = { id: number; title: string; minutes: number; action: string; why: string };
+type AiBreakdownResult = {
+  contextGuess: string | null;
+  doneDefinition: string | null;
+  steps: AiStep[];
+};
 
 const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
   deleted: 'この共有は削除されました',
@@ -58,7 +63,8 @@ const WORK_PLAN_STEPS = [
   '④ 清書して提出（15分）',
 ];
 const AI_STEP_PREFIXES = ['①', '②', '③', '④'];
-const AI_STEP_MINUTES = [5, 10, 15, 20];
+const AI_STEP_MINUTES = [5, 10, 15, 15];
+const AI_ALLOWED_MINUTES = new Set([5, 10, 15, 20]);
 const MEETING_MATERIALS_STEPS = [
   '① 目的・結論を1行で書く（5分）',
   '② 相手の論点を3つ予測する（5分）',
@@ -215,20 +221,21 @@ const buildAiBreakdownPrompt = (todo: Todo, userContext: string): string => {
     payment: '支払い',
   };
   const kindLabel = todo.kind ? (kindLabelMap[todo.kind] ?? todo.kind) : '';
+  const normalizeContext = (value: string) => value.replace(/\s+/g, ' ').trim();
   const context = [
-    AI_DEFAULT_CONTEXT.trim(),
-    userContext.trim(),
-    kindLabel ? `種別: ${kindLabel}` : '',
-    todo.deadlineAt ? `期限: ${todo.deadlineAt}` : '',
+    normalizeContext(AI_DEFAULT_CONTEXT),
+    normalizeContext(userContext),
+    kindLabel ? `種別:${kindLabel}` : '',
+    todo.deadlineAt ? `期限:${todo.deadlineAt}` : '',
   ]
     .filter(Boolean)
-    .join('\n');
+    .join(' / ');
   return AI_BREAKDOWN_PROMPT_TEMPLATE
     .replaceAll('{{TASK_TITLE}}', todo.text)
     .replaceAll('{{CONTEXT_HINT}}', context || '不明');
 };
 
-const parseAiSteps = (rawText: string): AiStep[] | null => {
+const parseAiBreakdown = (rawText: string): AiBreakdownResult | null => {
   if (!rawText) return null;
   let payload = rawText.trim();
   if (!payload.startsWith('{')) {
@@ -239,14 +246,44 @@ const parseAiSteps = (rawText: string): AiStep[] | null => {
     }
   }
   try {
-    const parsed = JSON.parse(payload) as { steps?: Array<{ title?: string }> };
+    const parsed = JSON.parse(payload) as {
+      context_guess?: string;
+      done_definition?: string;
+      steps?: Array<{
+        id?: number;
+        title?: string;
+        minutes?: number;
+        action?: string;
+        why?: string;
+      }>;
+    };
     if (!Array.isArray(parsed.steps) || parsed.steps.length !== 4) return null;
     const normalized = parsed.steps.map((step, index) => {
+      const idValue = typeof step.id === 'number' ? step.id : index + 1;
+      const id = idValue >= 1 && idValue <= 4 ? idValue : index + 1;
       const title = typeof step.title === 'string' ? step.title.trim() : '';
-      return title ? { title, minutes: AI_STEP_MINUTES[index] } : null;
+      const action = typeof step.action === 'string' ? step.action.trim() : '';
+      const why = typeof step.why === 'string' ? step.why.trim() : '';
+      const minutes = typeof step.minutes === 'number' && AI_ALLOWED_MINUTES.has(step.minutes)
+        ? step.minutes
+        : AI_STEP_MINUTES[index];
+      const baseTitle = title || action;
+      if (!baseTitle) return null;
+      return {
+        id,
+        title: baseTitle,
+        minutes,
+        action,
+        why,
+      } satisfies AiStep;
     });
     if (normalized.some((step) => step === null)) return null;
-    return normalized as AiStep[];
+    const sortedSteps = (normalized as AiStep[]).sort((a, b) => a.id - b.id);
+    return {
+      contextGuess: typeof parsed.context_guess === 'string' ? parsed.context_guess : null,
+      doneDefinition: typeof parsed.done_definition === 'string' ? parsed.done_definition : null,
+      steps: sortedSteps,
+    };
   } catch {
     return null;
   }
@@ -339,6 +376,8 @@ function App() {
   const [aiBreakdownSteps, setAiBreakdownSteps] = useState<AiStep[] | null>(null);
   const [aiBreakdownLoading, setAiBreakdownLoading] = useState(false);
   const [aiBreakdownError, setAiBreakdownError] = useState<string | null>(null);
+  const [aiBreakdownContextGuess, setAiBreakdownContextGuess] = useState<string | null>(null);
+  const [aiBreakdownDoneDefinition, setAiBreakdownDoneDefinition] = useState<string | null>(null);
   const forcedWarningRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -733,6 +772,8 @@ function App() {
     setAiBreakdownSteps(null);
     setAiBreakdownError(null);
     setAiBreakdownLoading(false);
+    setAiBreakdownContextGuess(null);
+    setAiBreakdownDoneDefinition(null);
   }, []);
 
   const runAiBreakdown = useCallback(async (todo: Todo) => {
@@ -748,6 +789,8 @@ function App() {
     setAiBreakdownLoading(true);
     setAiBreakdownError(null);
     setAiBreakdownSteps(null);
+    setAiBreakdownContextGuess(null);
+    setAiBreakdownDoneDefinition(null);
 
     try {
       const prompt = buildAiBreakdownPrompt(todo, userContext);
@@ -783,11 +826,17 @@ function App() {
         throw new Error(message || 'Gemini request failed');
       }
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      const steps = parseAiSteps(text);
-      if (!steps) {
-        throw new Error('Invalid Gemini response');
+      const result = parseAiBreakdown(text);
+      if (!result) {
+        const message = 'AIの結果を読み取れませんでした。もう一度お試しください';
+        setAiBreakdownError(message);
+        setAiBreakdownSteps([]);
+        setToast(message);
+        return;
       }
-      setAiBreakdownSteps(steps);
+      setAiBreakdownSteps(result.steps);
+      setAiBreakdownContextGuess(result.contextGuess);
+      setAiBreakdownDoneDefinition(result.doneDefinition);
     } catch {
       setAiBreakdownError('AIの取得に失敗しました');
       setToast('AIの取得に失敗しました');
@@ -813,10 +862,15 @@ function App() {
   }, [aiBreakdownTodo, runAiBreakdown]);
 
   const handleAddAiBreakdown = useCallback(() => {
-    if (!aiBreakdownTodo || !aiBreakdownSteps) return;
-    const inputs = aiBreakdownSteps.map((step, index) => ({
-      text: `${AI_STEP_PREFIXES[index]} ${step.title}（${step.minutes}分）`,
-    }));
+    if (!aiBreakdownTodo || !aiBreakdownSteps || aiBreakdownSteps.length === 0) return;
+    const inputs = aiBreakdownSteps.map((step, index) => {
+      const prefix = AI_STEP_PREFIXES[step.id - 1] ?? AI_STEP_PREFIXES[index];
+      const baseTitle = step.title.trim();
+      const withPrefix = baseTitle.startsWith(prefix) ? baseTitle : `${prefix} ${baseTitle}`;
+      return {
+        text: `${withPrefix}（${step.minutes}分）`,
+      };
+    });
     addTodosAfter(aiBreakdownTodo.id, inputs);
     closeAiBreakdown();
   }, [addTodosAfter, aiBreakdownSteps, aiBreakdownTodo, closeAiBreakdown]);
@@ -1153,6 +1207,19 @@ function App() {
             <p className="text-sm text-text-muted mb-4 truncate">
               {aiBreakdownTodo.text}
             </p>
+            {aiBreakdownDoneDefinition && (
+              <div className="mb-4 p-3 bg-bg-soft rounded-lg">
+                <p className="text-xs text-text-muted mb-1">完了条件</p>
+                <p className="text-sm text-text-main">
+                  {aiBreakdownDoneDefinition}
+                </p>
+              </div>
+            )}
+            {aiBreakdownContextGuess && (
+              <p className="text-xs text-text-muted mb-3">
+                文脈: {aiBreakdownContextGuess}
+              </p>
+            )}
 
             {aiBreakdownLoading && (
               <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
@@ -1179,14 +1246,32 @@ function App() {
 
             {aiBreakdownSteps && (
               <div className="space-y-2">
-                {aiBreakdownSteps.map((step, index) => (
-                  <div
-                    key={`${step.title}-${index}`}
-                    className="p-3 bg-bg-soft rounded-lg text-sm text-text-main"
-                  >
-                    {AI_STEP_PREFIXES[index]} {step.title}（{step.minutes}分）
-                  </div>
-                ))}
+                {aiBreakdownSteps.map((step, index) => {
+                  const prefix = AI_STEP_PREFIXES[step.id - 1] ?? AI_STEP_PREFIXES[index];
+                  const displayTitle = step.title.startsWith(prefix)
+                    ? step.title
+                    : `${prefix} ${step.title}`;
+                  return (
+                    <div
+                      key={`${step.id}-${step.title}`}
+                      className="p-3 bg-bg-soft rounded-lg text-sm text-text-main"
+                    >
+                      <p>
+                        {displayTitle}（{step.minutes}分）
+                      </p>
+                      {step.action && step.action !== step.title && (
+                        <p className="mt-1 text-xs text-text-muted">
+                          行動: {step.action}
+                        </p>
+                      )}
+                      {step.why && (
+                        <p className="mt-1 text-xs text-text-muted">
+                          理由: {step.why}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1202,7 +1287,7 @@ function App() {
               <button
                 type="button"
                 onClick={handleAddAiBreakdown}
-                disabled={!aiBreakdownSteps || aiBreakdownLoading}
+                disabled={!aiBreakdownSteps || aiBreakdownSteps.length === 0 || aiBreakdownLoading}
                 className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
                   hover:bg-main-deep transition-colors disabled:bg-border-light
                   disabled:cursor-not-allowed"
