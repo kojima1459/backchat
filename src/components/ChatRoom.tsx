@@ -4,7 +4,7 @@ import type { MessageData } from '../services/message';
 import { subscribeMessages, sendMessage, markAsRead } from '../services/message';
 import { deleteRoom, leaveRoom } from '../services/room';
 import { Toast } from './Toast';
-import { getRoomLabel } from '../services/roomLabel';
+import { getRoomLabel, setRoomLabel as saveRoomLabel } from '../services/roomLabel';
 
 interface ChatRoomProps {
   roomId: string;
@@ -25,6 +25,8 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
   const [isSending, setIsSending] = useState(false);
   const [sendErrorToast, setSendErrorToast] = useState(false);
   const [roomLabel, setRoomLabel] = useState<string | null>(null);
+  const [isLabelEditorOpen, setIsLabelEditorOpen] = useState(false);
+  const [labelInput, setLabelInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -67,7 +69,9 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
   };
 
   useEffect(() => {
-    setRoomLabel(getRoomLabel(roomId));
+    const storedLabel = getRoomLabel(roomId);
+    setRoomLabel(storedLabel);
+    setLabelInput(storedLabel ?? '');
   }, [roomId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -92,8 +96,16 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
 
   const handleExit = useCallback(() => {
     closeActions();
+    setIsLabelEditorOpen(false);
     onBack();
   }, [onBack]);
+
+  const handleSaveLabel = () => {
+    const trimmed = labelInput.trim();
+    saveRoomLabel(roomId, trimmed);
+    setRoomLabel(trimmed || null);
+    setIsLabelEditorOpen(false);
+  };
 
   const handleLeaveRoom = async () => {
     if (isLeaving || isDeleting) return;
@@ -156,9 +168,13 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
           </button>
 
           <div className="flex-1 flex items-center justify-center px-4">
-            <span className="text-sm font-medium text-text-main truncate">
+            <button
+              type="button"
+              onClick={() => setIsLabelEditorOpen(true)}
+              className="text-sm font-medium text-text-main truncate hover:text-text-sub transition-colors"
+            >
               {roomLabel || 'メモ'}
-            </span>
+            </button>
           </div>
           
           <div className="relative">
@@ -296,6 +312,59 @@ export const ChatRoom = ({ roomId, uid, onBack, onRoomDeleted, onRoomLeft }: Cha
               {actionError && (
                 <p className="text-sm text-error">{actionError}</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isLabelEditorOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+          onClick={() => setIsLabelEditorOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-text-main">ひとこと</h2>
+              <button
+                onClick={() => setIsLabelEditorOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-text-sub" />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              value={labelInput}
+              onChange={(e) => setLabelInput(e.target.value.slice(0, 20))}
+              placeholder="ひとこと（任意）"
+              className="w-full px-4 py-3 bg-bg-soft border border-border-light rounded-xl
+                text-text-main placeholder:text-text-muted
+                focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20
+                transition-all"
+            />
+
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsLabelEditorOpen(false)}
+                className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
+                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveLabel}
+                className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
+                  hover:bg-main-deep transition-colors"
+              >
+                保存
+              </button>
             </div>
           </div>
         </div>
