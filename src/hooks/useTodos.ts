@@ -143,14 +143,15 @@ export const useTodos = () => {
         deadlineAt: input.deadlineAt,
         kind: input.kind,
       }));
+      const parentOrder = parent?.order;
       const shouldUseParentOrder = parent
-        && typeof parent.order === 'number'
+        && typeof parentOrder === 'number'
         && !parent.isSecret
         && !parent.completed
         && !parent.isToday;
       if (shouldUseParentOrder) {
         newTodos.forEach((todo, index) => {
-          todo.order = parent.order + (index + 1) * 0.01;
+          todo.order = parentOrder + (index + 1) * 0.01;
         });
       } else {
         const nextOrder = getNextOrder(prev);
