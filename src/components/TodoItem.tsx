@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Check, Trash2, Video } from 'lucide-react';
 import type { Todo } from '../types/todo';
 import { useLongPress } from '../hooks/useLongPress';
-import type { Language } from '../i18n';
+import { t, type Language } from '../i18n';
 
 interface TodoItemProps {
   todo: Todo;
@@ -43,9 +43,9 @@ export const TodoItem = ({
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
   const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
   const kindBadge = todo.kind === 'reply'
-    ? (language === 'en' ? 'Reply' : '返信')
+    ? t(language, 'kindReply')
     : todo.kind === 'payment'
-      ? (language === 'en' ? 'Pay' : '支払い')
+      ? t(language, 'kindPayment')
       : null;
   const deadlineLabel = (() => {
     if (!todo.deadlineAt) return null;

@@ -22,6 +22,8 @@ const DICTIONARY = {
     longPressStandard: '標準',
     longPressLong: '長い',
     longPressCustom: 'カスタム',
+    kindReply: '返信',
+    kindPayment: '支払い',
   },
   en: {
     settingsTitle: 'Settings',
@@ -44,6 +46,8 @@ const DICTIONARY = {
     longPressStandard: 'Standard',
     longPressLong: 'Long',
     longPressCustom: 'Custom',
+    kindReply: 'Reply',
+    kindPayment: 'Pay',
   },
 } as const;
 
