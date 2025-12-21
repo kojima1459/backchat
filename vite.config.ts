@@ -28,12 +28,12 @@ export default defineConfig({
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'The ToDo',
-        short_name: 'The ToDo',
+        short_name: 'ToDo',
         description: 'シンプルで可愛いToDoリストアプリ',
         start_url: '/',
         display: 'standalone',
-        background_color: '#F8FAFC',
-        theme_color: '#2DD4BF',
+        background_color: '#0f172a',
+        theme_color: '#0f172a',
         orientation: 'portrait',
         icons: [
           {
