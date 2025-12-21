@@ -1,4 +1,3 @@
-export const GEMINI_API_KEY_STORAGE_KEY = 'geminiApiKey';
 export const GEMINI_CONTEXT_STORAGE_KEY = 'geminiUserContext';
 export const GEMINI_MODEL = 'gemini-1.5-flash';
 

@@ -22,10 +22,10 @@ import type { JoinRoomErrorCode } from './services/room';
 import type { Todo, TodoKind } from './types/todo';
 import { setRoomLabel } from './services/roomLabel';
 import type { Language } from './i18n';
+import { getGeminiApiKey } from './services/geminiKey';
 import {
   AI_BREAKDOWN_PROMPT_TEMPLATE,
   AI_DEFAULT_CONTEXT,
-  GEMINI_API_KEY_STORAGE_KEY,
   GEMINI_CONTEXT_STORAGE_KEY,
   GEMINI_MODEL,
 } from './constants/aiBreakdown';
@@ -732,9 +732,9 @@ function App() {
   }, []);
 
   const runAiBreakdown = useCallback(async (todo: Todo) => {
-    const apiKey = safeGetItem(GEMINI_API_KEY_STORAGE_KEY)?.trim();
+    const apiKey = getGeminiApiKey();
     if (!apiKey) {
-      setToast('Gemini APIキーを設定してください');
+      setToast('APIキーを設定してください');
       setShowSettingsModal(true);
       setAiBreakdownLoading(false);
       return;
@@ -765,7 +765,18 @@ function App() {
       );
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.error?.message ?? 'Gemini request failed');
+        const message = String(data?.error?.message ?? '');
+        const lowered = message.toLowerCase();
+        const isAuthError = response.status === 401
+          || response.status === 403
+          || lowered.includes('api key')
+          || lowered.includes('apikey');
+        if (isAuthError) {
+          setAiBreakdownError('APIキーを確認してください');
+          setToast('APIキーを確認してください');
+          return;
+        }
+        throw new Error(message || 'Gemini request failed');
       }
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
       const steps = parseAiSteps(text);
@@ -782,9 +793,9 @@ function App() {
   }, [setShowSettingsModal, setToast]);
 
   const handleAiBreakdown = useCallback((todo: Todo) => {
-    const apiKey = safeGetItem(GEMINI_API_KEY_STORAGE_KEY)?.trim();
+    const apiKey = getGeminiApiKey();
     if (!apiKey) {
-      setToast('Gemini APIキーを設定してください');
+      setToast('APIキーを設定してください');
       setShowSettingsModal(true);
       return;
     }
