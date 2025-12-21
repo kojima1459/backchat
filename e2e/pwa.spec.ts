@@ -22,8 +22,8 @@ test.describe('PWA機能', () => {
     
     const manifest = await response?.json();
     
-    expect(manifest.name).toBe('しれっとToDo');
-    expect(manifest.short_name).toBe('ToDo');
+    expect(manifest.name).toBe('The ToDo');
+    expect(manifest.short_name).toBe('The ToDo');
     expect(manifest.display).toBe('standalone');
     expect(manifest.start_url).toBe('/');
     expect(manifest.icons).toBeDefined();
@@ -57,7 +57,7 @@ test.describe('PWA機能', () => {
     await page.goto('/');
     
     // ヘッダーが表示されることを確認
-    await expect(page.getByText('しれっとToDo')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
     
     // FABボタンが表示されることを確認
     await expect(page.getByRole('button', { name: 'タスクを追加' })).toBeVisible();
@@ -100,7 +100,7 @@ test.describe('オフライン対応', () => {
      * 期待結果: 「ネットにつながってないみたい」が表示される
      */
     await page.goto('/');
-    await expect(page.getByText('今日のやること')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
     
     // オフラインモードをシミュレート
     await context.setOffline(true);
@@ -126,11 +126,11 @@ test.describe('オフライン対応', () => {
      */
     // まずオンラインでページを読み込む
     await page.goto('/');
-    await expect(page.getByText('今日のやること')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
     
     // タスクを追加
     await page.getByRole('button', { name: 'タスクを追加' }).click();
-    await page.getByPlaceholder('例：牛乳を買う').fill('オフラインテスト');
+    await page.getByPlaceholder('タスクを入力...').fill('オフラインテスト');
     await page.getByRole('button', { name: '追加する' }).click();
     await expect(page.getByText('オフラインテスト')).toBeVisible();
     
@@ -145,5 +145,17 @@ test.describe('オフライン対応', () => {
     
     // オンラインに戻す
     await context.setOffline(false);
+  });
+
+  test('localStorageが利用できなくてもクラッシュしない', async ({ page }) => {
+    await page.addInitScript(() => {
+      // localStorageが例外を投げる環境を模擬
+      Storage.prototype.getItem = () => { throw new Error('blocked'); };
+      Storage.prototype.setItem = () => { throw new Error('blocked'); };
+      Storage.prototype.removeItem = () => { throw new Error('blocked'); };
+    });
+
+    await page.goto('/');
+    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
   });
 });

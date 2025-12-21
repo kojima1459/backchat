@@ -18,7 +18,7 @@ test.describe('ToDo機能', () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     // ローディング完了を待機
-    await expect(page.getByText('今日のやること')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
   });
 
   // ========================================
@@ -44,10 +44,10 @@ test.describe('ToDo機能', () => {
     await page.getByRole('button', { name: 'タスクを追加' }).click();
     
     // モーダルが表示されることを確認
-    await expect(page.getByPlaceholder('例：牛乳を買う')).toBeVisible();
+    await expect(page.getByPlaceholder('タスクを入力...')).toBeVisible();
     
     // タスクを入力
-    await page.getByPlaceholder('例：牛乳を買う').fill('テストタスク');
+    await page.getByPlaceholder('タスクを入力...').fill('テストタスク');
     
     // 追加ボタンをクリック
     await page.getByRole('button', { name: '追加する' }).click();
@@ -79,7 +79,7 @@ test.describe('ToDo機能', () => {
      */
     // タスクを追加
     await page.getByRole('button', { name: 'タスクを追加' }).click();
-    await page.getByPlaceholder('例：牛乳を買う').fill('永続化テスト');
+    await page.getByPlaceholder('タスクを入力...').fill('永続化テスト');
     await page.getByRole('button', { name: '追加する' }).click();
     
     // タスクが表示されることを確認
@@ -89,7 +89,7 @@ test.describe('ToDo機能', () => {
     await page.reload();
     
     // ローディング完了を待機
-    await expect(page.getByText('今日のやること')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
     
     // タスクが保持されていることを確認
     await expect(page.getByText('永続化テスト')).toBeVisible();
@@ -121,13 +121,13 @@ test.describe('ToDo機能', () => {
     await page.getByRole('button', { name: 'タスクを追加' }).click();
     
     // モーダルが表示されることを確認
-    await expect(page.getByPlaceholder('例：牛乳を買う')).toBeVisible();
+    await expect(page.getByPlaceholder('タスクを入力...')).toBeVisible();
     
-    // キャンセルボタンをクリック
-    await page.getByRole('button', { name: 'キャンセル' }).click();
+    // オーバーレイをクリックして閉じる
+    await page.mouse.click(10, 10);
     
     // モーダルが非表示になることを確認
-    await expect(page.getByPlaceholder('例：牛乳を買う')).not.toBeVisible();
+    await expect(page.getByPlaceholder('タスクを入力...')).not.toBeVisible();
   });
 
   test('シークレットタスク保護: Zoom会議タスクは削除できない', async ({ page }) => {
