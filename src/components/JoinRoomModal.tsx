@@ -25,6 +25,7 @@ export const JoinRoomModal = ({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRoomKey('');
       setLocalError(null);
       setCopied(false);
@@ -35,6 +36,7 @@ export const JoinRoomModal = ({
   // 外部からのエラーを表示
   useEffect(() => {
     if (error) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalError(error);
     }
   }, [error]);

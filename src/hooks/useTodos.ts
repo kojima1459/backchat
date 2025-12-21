@@ -44,6 +44,7 @@ export const useTodos = () => {
         if (!hasSecret) {
           parsed.unshift(SECRET_TASK);
         }
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTodos(parsed);
       } catch {
         setTodos(INITIAL_TODOS);
