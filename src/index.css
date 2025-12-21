@@ -43,6 +43,10 @@ button, input, textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+input, textarea {
+  min-height: 44px;
+}
+
 /* スクロールバーを非表示（モバイル向け） */
 ::-webkit-scrollbar {
   display: none;
@@ -59,7 +63,22 @@ html {
 }
 
 .safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+.tap-target:active {
+  transform: scale(0.96);
+  opacity: 0.85;
 }
 
 /* アニメーション */
