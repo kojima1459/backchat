@@ -20,11 +20,12 @@ export const TodoItem = ({
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const shouldTriggerEntry = Boolean(onSecretLongPress) && !todo.isSecret;
 
-  // 裏モード用の長押しハンドラー
+  // 裏モード入口の長押しハンドラー
   const secretLongPress = useLongPress({
     onLongPress: () => {
-      if (todo.isSecret && onSecretLongPress) {
+      if (onSecretLongPress) {
         // 振動フィードバック（対応デバイスのみ）
         if (navigator.vibrate) {
           navigator.vibrate(50);
@@ -62,26 +63,41 @@ export const TodoItem = ({
 
   const handleTouchStart = () => {
     setIsPressed(true);
+    if (shouldTriggerEntry) {
+      secretLongPress.onTouchStart();
+    }
     longPressHandlers.onTouchStart();
   };
 
   const handleTouchEnd = () => {
     setIsPressed(false);
+    if (shouldTriggerEntry) {
+      secretLongPress.onTouchEnd();
+    }
     longPressHandlers.onTouchEnd();
   };
 
   const handleMouseDown = () => {
     setIsPressed(true);
+    if (shouldTriggerEntry) {
+      secretLongPress.onMouseDown();
+    }
     longPressHandlers.onMouseDown();
   };
 
   const handleMouseUp = () => {
     setIsPressed(false);
+    if (shouldTriggerEntry) {
+      secretLongPress.onMouseUp();
+    }
     longPressHandlers.onMouseUp();
   };
 
   const handleMouseLeave = () => {
     setIsPressed(false);
+    if (shouldTriggerEntry) {
+      secretLongPress.onMouseLeave();
+    }
     longPressHandlers.onMouseLeave();
   };
 
