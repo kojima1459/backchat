@@ -119,7 +119,7 @@ const formatTimeAgo = (date: Date | null): string => {
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
-  const { todos, addTodo, addTodos, toggleTodo, setTodoToday, deleteTodo, isLoaded } = useTodos();
+  const { todos, addTodo, addTodos, setTodoOrders, toggleTodo, setTodoToday, deleteTodo, editTodo, isLoaded } = useTodos();
   
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
@@ -149,6 +149,7 @@ function App() {
   const [activeTimer, setActiveTimer] = useState<{ todoId: string; endsAt: number } | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
+  const [inboxText, setInboxText] = useState('');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -426,6 +427,21 @@ function App() {
     addTodo(text);
   }, [addTodo, addTodos]);
 
+  const handleInboxSubmit = useCallback((event: React.FormEvent) => {
+    event.preventDefault();
+    const lines = inboxText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return;
+    addTodos(lines);
+    setInboxText('');
+  }, [addTodos, inboxText]);
+
+  const handleEditTodo = useCallback((id: string, text: string) => {
+    editTodo(id, text);
+  }, [editTodo]);
+
   // 裏モード入口（長押し）
   const handleSecretLongPress = useCallback(() => {
     setShowJoinModal(true);
@@ -528,10 +544,23 @@ function App() {
 
   const todayTodos = todos.filter((todo) => todo.isToday);
   const backlogTodos = todos.filter((todo) => !todo.isToday);
+  const backlogActiveIds = backlogTodos
+    .filter((todo) => !todo.completed && !todo.isSecret)
+    .map((todo) => todo.id);
   const hasVisibleTodos = todos.some((todo) => !todo.isSecret);
   const activeTimerTodo = activeTimer
     ? todos.find((todo) => todo.id === activeTimer.todoId) ?? null
     : null;
+
+  const handleMoveBacklog = useCallback((id: string, direction: -1 | 1) => {
+    const index = backlogActiveIds.indexOf(id);
+    if (index === -1) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= backlogActiveIds.length) return;
+    const reordered = [...backlogActiveIds];
+    [reordered[index], reordered[nextIndex]] = [reordered[nextIndex], reordered[index]];
+    setTodoOrders(reordered);
+  }, [backlogActiveIds, setTodoOrders]);
 
   // ホーム画面（ToDo）
   return (
@@ -553,6 +582,28 @@ function App() {
       
       {/* メインコンテンツ */}
       <main className="px-4 pb-24">
+        <form onSubmit={handleInboxSubmit} className="mt-2 mb-4">
+          <div className="flex items-start gap-2">
+            <textarea
+              value={inboxText}
+              onChange={(event) => setInboxText(event.target.value)}
+              placeholder="インボックスに追加（改行で複数）"
+              rows={2}
+              className="flex-1 px-4 py-3 bg-card-white border border-border-light rounded-xl
+                text-[16px] leading-relaxed text-text-main placeholder:text-text-muted
+                focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20
+                transition-all resize-none"
+            />
+            <button
+              type="submit"
+              className="min-h-[44px] px-4 rounded-xl bg-brand-mint text-white text-sm font-semibold
+                hover:bg-main-deep transition-colors"
+            >
+              追加
+            </button>
+          </div>
+        </form>
+
         <div className="todaySticky">
           <div className="flex items-end justify-between mb-2 mt-2">
             <h2 className="text-sm font-bold text-text-sub">
@@ -572,6 +623,7 @@ function App() {
                   onToggle={handleToggle}
                   onToggleToday={handleToggleToday}
                   onStartTimer={handleStartTimer}
+                  onEdit={handleEditTodo}
                   onDelete={deleteTodo}
                   secretLongPressDelay={secretLongPressDelay}
                 />
@@ -590,17 +642,25 @@ function App() {
 
         <div className="space-y-2">
           {backlogTodos.length > 0 ? (
-            backlogTodos.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={handleToggle}
-                onToggleToday={handleToggleToday}
-                onStartTimer={handleStartTimer}
-                onDelete={deleteTodo}
-                secretLongPressDelay={secretLongPressDelay}
-              />
-            ))
+            backlogTodos.map((todo) => {
+              const index = backlogActiveIds.indexOf(todo.id);
+              const canMoveUp = index > 0;
+              const canMoveDown = index !== -1 && index < backlogActiveIds.length - 1;
+              return (
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  onToggle={handleToggle}
+                  onToggleToday={handleToggleToday}
+                  onStartTimer={handleStartTimer}
+                  onEdit={handleEditTodo}
+                  onMoveUp={canMoveUp ? () => handleMoveBacklog(todo.id, -1) : undefined}
+                  onMoveDown={canMoveDown ? () => handleMoveBacklog(todo.id, 1) : undefined}
+                  onDelete={deleteTodo}
+                  secretLongPressDelay={secretLongPressDelay}
+                />
+              );
+            })
           ) : hasVisibleTodos ? (
             <p className="text-sm text-text-muted py-2">バックログは空です</p>
           ) : null}

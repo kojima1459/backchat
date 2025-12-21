@@ -9,6 +9,9 @@ interface TodoItemProps {
   onDelete: (id: string) => void;
   onToggleToday: (id: string) => void;
   onStartTimer: (id: string) => void;
+  onEdit: (id: string, text: string) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   secretLongPressDelay?: number;
 }
 
@@ -18,16 +21,44 @@ export const TodoItem = ({
   onDelete,
   onToggleToday,
   onStartTimer,
+  onEdit,
+  onMoveUp,
+  onMoveDown,
   secretLongPressDelay,
 }: TodoItemProps) => {
   const [showDelete, setShowDelete] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
   const isWorkStep = /^[①②③④⑤]/.test(todo.text);
   const isToday = Boolean(todo.isToday);
   const showStartTimer = !todo.completed;
+  const showReorder = !todo.completed && (onMoveUp || onMoveDown);
 
   const stopPropagation = (event: React.SyntheticEvent) => {
     event.stopPropagation();
+  };
+
+  const startEditing = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+    setEditText(todo.text);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+    setIsEditing(false);
+    setEditText('');
+  };
+
+  const saveEditing = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+    const trimmed = editText.trim();
+    if (trimmed) {
+      onEdit(todo.id, trimmed);
+    }
+    setIsEditing(false);
+    setEditText('');
   };
 
   // シークレットタスク用の長押しハンドラー（クリック抑止のために維持）
@@ -62,26 +93,31 @@ export const TodoItem = ({
   const longPressHandlers = todo.isSecret ? secretLongPress : normalLongPress;
 
   const handleTouchStart = () => {
+    if (isEditing) return;
     setIsPressed(true);
     longPressHandlers.onTouchStart();
   };
 
   const handleTouchEnd = () => {
+    if (isEditing) return;
     setIsPressed(false);
     longPressHandlers.onTouchEnd();
   };
 
   const handleMouseDown = () => {
+    if (isEditing) return;
     setIsPressed(true);
     longPressHandlers.onMouseDown();
   };
 
   const handleMouseUp = () => {
+    if (isEditing) return;
     setIsPressed(false);
     longPressHandlers.onMouseUp();
   };
 
   const handleMouseLeave = () => {
+    if (isEditing) return;
     setIsPressed(false);
     longPressHandlers.onMouseLeave();
   };
@@ -94,14 +130,15 @@ export const TodoItem = ({
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        onClick={longPressHandlers.onClick}
+        onClick={isEditing ? undefined : longPressHandlers.onClick}
         className={`
-          flex items-center gap-4 p-4 min-h-[60px] bg-card-white rounded-xl
+          flex gap-4 p-4 min-h-[60px] bg-card-white rounded-xl
           border border-border-light shadow-sm
           transition-all duration-200 cursor-pointer select-none
           ${isPressed ? 'scale-[0.98] bg-gray-50' : ''}
           ${todo.completed ? 'opacity-60' : ''}
           ${isWorkStep ? 'ml-3' : ''}
+          ${isEditing ? 'items-start' : 'items-center'}
         `}
       >
         {/* チェックボックス */}
@@ -123,50 +160,122 @@ export const TodoItem = ({
           {todo.isSecret && (
             <Video className="w-4 h-4 text-text-muted" />
           )}
-          <span
-            className={`
-              text-[17px] leading-relaxed font-medium
-              ${todo.completed ? 'line-through text-text-muted' : 'text-text-main'}
-            `}
-          >
-            {todo.text}
-          </span>
+          {isEditing ? (
+            <div className="w-full">
+              <textarea
+                value={editText}
+                onChange={(event) => setEditText(event.target.value)}
+                rows={2}
+                className="w-full text-[16px] leading-relaxed text-text-main bg-bg-soft
+                  border border-border-light rounded-lg px-3 py-2 resize-none
+                  focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20"
+                onClick={stopPropagation}
+                onTouchStart={stopPropagation}
+                onMouseDown={stopPropagation}
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  className="min-h-[36px] px-3 rounded-full border border-border-light
+                    text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={saveEditing}
+                  className="min-h-[36px] px-3 rounded-full bg-brand-mint text-white
+                    text-xs font-semibold hover:bg-main-deep transition-colors"
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+          ) : (
+            <span
+              className={`
+                text-[17px] leading-relaxed font-medium
+                ${todo.completed ? 'line-through text-text-muted' : 'text-text-main'}
+              `}
+            >
+              {todo.text}
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            aria-pressed={isToday}
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleToday(todo.id);
-            }}
-            onTouchStart={stopPropagation}
-            onMouseDown={stopPropagation}
-            className={`tap-target px-3 text-xs font-semibold rounded-full border
-              ${isToday
-                ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
-                : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
-              }`}
-          >
-            今日
-          </button>
-          {showStartTimer && (
+        {!isEditing && (
+          <div className="flex items-center gap-2">
+            {showReorder && (
+              <div className="flex flex-col gap-1">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveUp?.();
+                  }}
+                  disabled={!onMoveUp}
+                  className="min-h-[32px] min-w-[32px] rounded-md border border-border-light
+                    text-xs text-text-sub hover:bg-gray-100 transition-colors disabled:opacity-40"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveDown?.();
+                  }}
+                  disabled={!onMoveDown}
+                  className="min-h-[32px] min-w-[32px] rounded-md border border-border-light
+                    text-xs text-text-sub hover:bg-gray-100 transition-colors disabled:opacity-40"
+                >
+                  ↓
+                </button>
+              </div>
+            )}
             <button
               type="button"
+              onClick={startEditing}
+              className="min-h-[36px] px-3 rounded-full border border-border-light
+                text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+            >
+              編集
+            </button>
+            <button
+              type="button"
+              aria-pressed={isToday}
               onClick={(event) => {
                 event.stopPropagation();
-                onStartTimer(todo.id);
+                onToggleToday(todo.id);
               }}
               onTouchStart={stopPropagation}
               onMouseDown={stopPropagation}
-              className="tap-target px-3 text-xs font-semibold rounded-full border
-                bg-bg-soft border-border-light text-text-sub hover:bg-gray-100"
+              className={`tap-target px-3 text-xs font-semibold rounded-full border
+                ${isToday
+                  ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                  : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+                }`}
             >
-              5分Start
+              今日
             </button>
-          )}
-        </div>
+            {showStartTimer && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onStartTimer(todo.id);
+                }}
+                onTouchStart={stopPropagation}
+                onMouseDown={stopPropagation}
+                className="tap-target px-3 text-xs font-semibold rounded-full border
+                  bg-bg-soft border-border-light text-text-sub hover:bg-gray-100"
+              >
+                5分Start
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 削除確認オーバーレイ */}

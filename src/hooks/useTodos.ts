@@ -55,6 +55,14 @@ export const useTodos = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const getNextOrder = (items: Todo[]): number | null => {
+    const orders = items
+      .filter((todo) => !todo.isSecret && !todo.isToday && !todo.completed && typeof todo.order === 'number')
+      .map((todo) => todo.order as number);
+    if (orders.length === 0) return null;
+    return Math.max(...orders) + 1;
+  };
+
   // ローカルストレージから読み込み
   useEffect(() => {
     // [リファクタ A-2] safeGetItemを使用して例外を安全に処理
@@ -90,13 +98,15 @@ export const useTodos = () => {
   const addTodos = useCallback((texts: string[]) => {
     if (texts.length === 0) return;
     const timestamp = Date.now();
-    const newTodos: Todo[] = texts.map((text, index) => ({
-      id: `todo-${timestamp}-${index}`,
-      text: text.trim(),
-      completed: false,
-      createdAt: timestamp + (texts.length - index),
-    }));
     setTodos(prev => {
+      const nextOrder = getNextOrder(prev);
+      const newTodos: Todo[] = texts.map((text, index) => ({
+        id: `todo-${timestamp}-${index}`,
+        text: text.trim(),
+        completed: false,
+        createdAt: timestamp + (texts.length - index),
+        order: nextOrder === null ? undefined : nextOrder + index,
+      }));
       // シークレットタスクの後に追加
       const secretIndex = prev.findIndex(t => t.isSecret);
       if (secretIndex >= 0) {
@@ -117,6 +127,17 @@ export const useTodos = () => {
     setTodos(prev => 
       prev.map(todo => 
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
+  }, []);
+
+  const setTodoOrders = useCallback((orderedIds: string[]) => {
+    const orderMap = new Map(orderedIds.map((id, index) => [id, index]));
+    setTodos(prev =>
+      prev.map(todo =>
+        orderMap.has(todo.id)
+          ? { ...todo, order: orderMap.get(todo.id) }
+          : todo
       )
     );
   }, []);
@@ -153,6 +174,13 @@ export const useTodos = () => {
     if (a.completed !== b.completed) {
       return a.completed ? 1 : -1;
     }
+    if (!a.completed && !b.completed && !a.isToday && !b.isToday) {
+      const orderA = a.order;
+      const orderB = b.order;
+      if (orderA !== undefined || orderB !== undefined) {
+        return (orderA ?? Number.MAX_SAFE_INTEGER) - (orderB ?? Number.MAX_SAFE_INTEGER);
+      }
+    }
     // 同じステータスなら新しい順
     return b.createdAt - a.createdAt;
   });
@@ -161,6 +189,7 @@ export const useTodos = () => {
     todos: sortedTodos,
     addTodo,
     addTodos,
+    setTodoOrders,
     toggleTodo,
     setTodoToday,
     deleteTodo,
