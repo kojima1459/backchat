@@ -8,6 +8,12 @@ export interface Todo {
   order?: number;
   deferCount?: number;
   snoozeUntil?: string;
+  deadlineAt?: string;
+}
+
+export interface TodoInput {
+  text: string;
+  deadlineAt?: string;
 }
 
 export interface Room {

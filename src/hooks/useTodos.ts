@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Todo } from '../types/todo';
+import type { Todo, TodoInput } from '../types/todo';
 
 const STORAGE_KEY = 'shiretto-todos';
 
@@ -95,17 +95,21 @@ export const useTodos = () => {
   }, [todos, isLoaded]);
 
   // タスク追加（複数対応）
-  const addTodos = useCallback((texts: string[]) => {
-    if (texts.length === 0) return;
+  const addTodos = useCallback((inputs: Array<string | TodoInput>) => {
+    if (inputs.length === 0) return;
     const timestamp = Date.now();
     setTodos(prev => {
+      const normalized = inputs.map((input) => (
+        typeof input === 'string' ? { text: input } : input
+      ));
       const nextOrder = getNextOrder(prev);
-      const newTodos: Todo[] = texts.map((text, index) => ({
+      const newTodos: Todo[] = normalized.map((input, index) => ({
         id: `todo-${timestamp}-${index}`,
-        text: text.trim(),
+        text: input.text.trim(),
         completed: false,
-        createdAt: timestamp + (texts.length - index),
+        createdAt: timestamp + (normalized.length - index),
         order: nextOrder === null ? undefined : nextOrder + index,
+        deadlineAt: input.deadlineAt,
       }));
       // シークレットタスクの後に追加
       const secretIndex = prev.findIndex(t => t.isSecret);

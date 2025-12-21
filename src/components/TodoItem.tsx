@@ -39,6 +39,16 @@ export const TodoItem = ({
   const showStartTimer = !todo.completed;
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
   const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
+  const deadlineLabel = (() => {
+    if (!todo.deadlineAt) return null;
+    const match = todo.deadlineAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      return `${match[2]}/${match[3]}`;
+    }
+    const parsed = new Date(todo.deadlineAt);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return `${parsed.getMonth() + 1}/${parsed.getDate()}`;
+  })();
 
   const stopPropagation = (event: React.SyntheticEvent) => {
     event.stopPropagation();
@@ -198,14 +208,21 @@ export const TodoItem = ({
               </div>
             </div>
           ) : (
-            <span
-              className={`
-                text-[17px] leading-relaxed font-medium
-                ${todo.completed ? 'line-through text-text-muted' : 'text-text-main'}
-              `}
-            >
-              {todo.text}
-            </span>
+            <div className="flex-1">
+              <span
+                className={`
+                  text-[17px] leading-relaxed font-medium
+                  ${todo.completed ? 'line-through text-text-muted' : 'text-text-main'}
+                `}
+              >
+                {todo.text}
+              </span>
+              {deadlineLabel && (
+                <div className="mt-1 text-xs text-text-muted">
+                  期限 {deadlineLabel}
+                </div>
+              )}
+            </div>
           )}
         </div>
 

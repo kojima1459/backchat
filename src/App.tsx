@@ -19,6 +19,7 @@ import { useTodos } from './hooks/useTodos';
 import { useAuth } from './contexts/AuthContext';
 import { joinRoom, getRoom } from './services/room';
 import type { JoinRoomErrorCode } from './services/room';
+import type { Todo } from './types/todo';
 import { setRoomLabel } from './services/roomLabel';
 import type { Language } from './i18n';
 
@@ -35,6 +36,7 @@ const THEME_STORAGE_KEY = 'theme';
 const LANGUAGE_STORAGE_KEY = 'language';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
+const AUTO_SORT_STORAGE_KEY = 'backlogAutoSort';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
 const TIMER_STORAGE_KEY = 'todoTimer';
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -102,6 +104,11 @@ const resolveLastRoomId = (): string | null => {
   return localStorage.getItem(LAST_ROOM_STORAGE_KEY);
 };
 
+const resolveAutoSort = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem(AUTO_SORT_STORAGE_KEY) === 'true';
+};
+
 const formatTimeAgo = (date: Date | null): string => {
   if (!date || Number.isNaN(date.getTime())) return '—';
 
@@ -121,6 +128,99 @@ const formatDateKey = (date: Date): string => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const createDateKey = (year: number, month: number, day: number): string | null => {
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) return null;
+  if (date.getMonth() + 1 !== month || date.getDate() !== day) return null;
+  return formatDateKey(date);
+};
+
+const parseDeadlineFromText = (text: string, baseDate: Date): string | null => {
+  if (text.includes('今日')) {
+    return formatDateKey(baseDate);
+  }
+  if (text.includes('明日')) {
+    const next = new Date(baseDate);
+    next.setDate(next.getDate() + 1);
+    return formatDateKey(next);
+  }
+  if (text.includes('来週')) {
+    const next = new Date(baseDate);
+    next.setDate(next.getDate() + 7);
+    return formatDateKey(next);
+  }
+
+  const monthDayMatch = text.match(/(\d{1,2})月(\d{1,2})日/);
+  if (monthDayMatch) {
+    const month = Number(monthDayMatch[1]);
+    const day = Number(monthDayMatch[2]);
+    return createDateKey(baseDate.getFullYear(), month, day);
+  }
+
+  const slashMatch = text.match(/(\d{1,2})[\/-](\d{1,2})/);
+  if (slashMatch) {
+    const month = Number(slashMatch[1]);
+    const day = Number(slashMatch[2]);
+    return createDateKey(baseDate.getFullYear(), month, day);
+  }
+
+  const dayMatch = text.match(/(\d{1,2})日/);
+  if (dayMatch) {
+    const day = Number(dayMatch[1]);
+    return createDateKey(baseDate.getFullYear(), baseDate.getMonth() + 1, day);
+  }
+
+  return null;
+};
+
+const parseDeadlineDate = (deadlineAt: string): Date | null => {
+  const match = deadlineAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const parsed = new Date(deadlineAt);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const KEYWORD_SCORES = [
+  { keyword: 'レポート', score: 12 },
+  { keyword: '提出', score: 10 },
+  { keyword: '締切', score: 10 },
+  { keyword: '支払い', score: 8 },
+  { keyword: '返信', score: 8 },
+  { keyword: '会議', score: 6 },
+];
+
+const priorityScore = (todo: Todo, now: Date): number => {
+  let score = 0;
+
+  if (todo.deadlineAt) {
+    const deadlineDate = parseDeadlineDate(todo.deadlineAt);
+    if (deadlineDate) {
+      const diffDays = Math.ceil((deadlineDate.getTime() - now.getTime()) / 86400000);
+      if (diffDays <= 0) {
+        score += 100;
+      } else {
+        score += Math.max(0, 80 - diffDays * 5);
+      }
+    }
+  }
+
+  const text = todo.text;
+  KEYWORD_SCORES.forEach((entry) => {
+    if (text.includes(entry.keyword)) {
+      score += entry.score;
+    }
+  });
+
+  score += (todo.deferCount ?? 0) * 4;
+  return score;
 };
 
 function App() {
@@ -157,6 +257,7 @@ function App() {
   const [remainingMs, setRemainingMs] = useState(0);
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
   const [inboxText, setInboxText] = useState('');
+  const [autoSortBacklog, setAutoSortBacklog] = useState(resolveAutoSort);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -190,6 +291,11 @@ function App() {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language;
   }, [language]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(AUTO_SORT_STORAGE_KEY, String(autoSortBacklog));
+  }, [autoSortBacklog]);
 
   useEffect(() => {
     localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
@@ -441,7 +547,12 @@ function App() {
       .map((line) => line.trim())
       .filter(Boolean);
     if (lines.length === 0) return;
-    addTodos(lines);
+    const baseDate = new Date();
+    const inputs = lines.map((line) => ({
+      text: line,
+      deadlineAt: parseDeadlineFromText(line, baseDate) ?? undefined,
+    }));
+    addTodos(inputs);
     setInboxText('');
   }, [addTodos, inboxText]);
 
@@ -556,15 +667,25 @@ function App() {
   }
 
   const todayKey = formatDateKey(new Date());
-  const isSnoozedTodo = (todo: typeof todos[number]) =>
+  const isSnoozedTodo = (todo: Todo) =>
     Boolean(todo.snoozeUntil && todo.snoozeUntil > todayKey);
   const todayTodos = todos.filter((todo) => todo.isToday && !isSnoozedTodo(todo));
   const backlogTodos = todos.filter((todo) => !todo.isToday);
   const visibleBacklogTodos = backlogTodos.filter((todo) => !isSnoozedTodo(todo));
   const snoozedCount = backlogTodos.length - visibleBacklogTodos.length;
-  const backlogActiveIds = visibleBacklogTodos
-    .filter((todo) => !todo.completed && !todo.isSecret)
-    .map((todo) => todo.id);
+  const now = new Date();
+  const sortedBacklogTodos = autoSortBacklog
+    ? [...visibleBacklogTodos].sort((a, b) => {
+      const scoreDiff = priorityScore(b, now) - priorityScore(a, now);
+      if (scoreDiff !== 0) return scoreDiff;
+      return b.createdAt - a.createdAt;
+    })
+    : visibleBacklogTodos;
+  const backlogActiveIds = autoSortBacklog
+    ? []
+    : sortedBacklogTodos
+      .filter((todo) => !todo.completed && !todo.isSecret)
+      .map((todo) => todo.id);
   const hasVisibleTodos = todos.some((todo) => !todo.isSecret);
   const activeTimerTodo = activeTimer
     ? todos.find((todo) => todo.id === activeTimer.todoId) ?? null
@@ -656,11 +777,23 @@ function App() {
           <h2 className="text-sm font-bold text-text-sub">
             バックログ
           </h2>
+          <button
+            type="button"
+            onClick={() => setAutoSortBacklog((prev) => !prev)}
+            className={`min-h-[32px] px-3 rounded-full border text-xs font-semibold
+              transition-colors
+              ${autoSortBacklog
+                ? 'bg-brand-mint/15 border-brand-mint text-brand-mint'
+                : 'bg-bg-soft border-border-light text-text-sub hover:bg-gray-100'
+              }`}
+          >
+            自動優先（推奨）
+          </button>
         </div>
 
         <div className="space-y-2">
-          {visibleBacklogTodos.length > 0 ? (
-            visibleBacklogTodos.map((todo) => {
+          {sortedBacklogTodos.length > 0 ? (
+            sortedBacklogTodos.map((todo) => {
               const index = backlogActiveIds.indexOf(todo.id);
               const canMoveUp = index > 0;
               const canMoveDown = index !== -1 && index < backlogActiveIds.length - 1;
