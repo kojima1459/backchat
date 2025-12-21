@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-type TodoCreateType = 'normal' | 'workPlan';
+export type TodoCreateType = 'normal' | 'workPlan';
 
 interface AddTodoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (text: string) => void;
+  onAdd: (text: string, type: TodoCreateType) => void;
 }
 
 export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
@@ -30,7 +30,7 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (text.trim()) {
-      onAdd(text.trim());
+      onAdd(text.trim(), taskType);
       setText('');
       onClose();
     }

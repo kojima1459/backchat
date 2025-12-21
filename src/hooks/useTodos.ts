@@ -86,25 +86,31 @@ export const useTodos = () => {
     }
   }, [todos, isLoaded]);
 
-  // タスク追加
-  const addTodo = useCallback((text: string) => {
-    const newTodo: Todo = {
-      id: `todo-${Date.now()}`,
+  // タスク追加（複数対応）
+  const addTodos = useCallback((texts: string[]) => {
+    if (texts.length === 0) return;
+    const timestamp = Date.now();
+    const newTodos: Todo[] = texts.map((text, index) => ({
+      id: `todo-${timestamp}-${index}`,
       text: text.trim(),
       completed: false,
-      createdAt: Date.now(),
-    };
+      createdAt: timestamp + (texts.length - index),
+    }));
     setTodos(prev => {
       // シークレットタスクの後に追加
       const secretIndex = prev.findIndex(t => t.isSecret);
       if (secretIndex >= 0) {
-        const newTodos = [...prev];
-        newTodos.splice(secretIndex + 1, 0, newTodo);
-        return newTodos;
+        const nextTodos = [...prev];
+        nextTodos.splice(secretIndex + 1, 0, ...newTodos);
+        return nextTodos;
       }
-      return [newTodo, ...prev];
+      return [...newTodos, ...prev];
     });
   }, []);
+
+  const addTodo = useCallback((text: string) => {
+    addTodos([text]);
+  }, [addTodos]);
 
   // タスク完了/未完了切り替え
   const toggleTodo = useCallback((id: string) => {
@@ -145,6 +151,7 @@ export const useTodos = () => {
   return {
     todos: sortedTodos,
     addTodo,
+    addTodos,
     toggleTodo,
     deleteTodo,
     editTodo,

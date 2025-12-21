@@ -10,7 +10,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { Header } from './components/Header';
 import { TodoItem } from './components/TodoItem';
-import { AddTodoModal } from './components/AddTodoModal';
+import { AddTodoModal, type TodoCreateType } from './components/AddTodoModal';
 import { SettingsModal } from './components/SettingsModal';
 import { JoinRoomModal } from './components/JoinRoomModal';
 import { ChatRoom } from './components/ChatRoom';
@@ -36,6 +36,12 @@ const LANGUAGE_STORAGE_KEY = 'language';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
+const WORK_PLAN_STEPS = [
+  '① 完了条件を書く（5分）',
+  '② 素材を集める（10分）',
+  '③ ドラフトを作る（15分）',
+  '④ 清書して提出（15分）',
+];
 
 const resolveThemeSetting = (): ThemeSetting => {
   if (typeof window === 'undefined') return 'system';
@@ -89,7 +95,7 @@ const formatTimeAgo = (date: Date | null): string => {
 function App() {
   // [リファクタ A-3] AuthContextから認証状態を直接取得
   const { uid, isLoading, isOnline } = useAuth();
-  const { todos, addTodo, toggleTodo, deleteTodo, isLoaded } = useTodos();
+  const { todos, addTodo, addTodos, toggleTodo, deleteTodo, isLoaded } = useTodos();
   
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
@@ -267,6 +273,14 @@ function App() {
     toggleTodo(id);
   }, [todos, toggleTodo]);
 
+  const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
+    if (type === 'workPlan') {
+      addTodos([text, ...WORK_PLAN_STEPS]);
+      return;
+    }
+    addTodo(text);
+  }, [addTodo, addTodos]);
+
   // 裏モード入口（長押し）
   const handleSecretLongPress = useCallback(() => {
     setShowJoinModal(true);
@@ -433,7 +447,7 @@ function App() {
       <AddTodoModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        onAdd={addTodo}
+        onAdd={handleAddTodo}
       />
       
       <SettingsModal
