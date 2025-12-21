@@ -773,7 +773,7 @@ function App() {
         throw new Error('Invalid Gemini response');
       }
       setAiBreakdownSteps(steps);
-    } catch (error) {
+    } catch {
       setAiBreakdownError('AIの取得に失敗しました');
       setToast('AIの取得に失敗しました');
     } finally {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { t, type Language } from '../i18n';
 import {
@@ -73,14 +73,12 @@ export const SettingsModal = ({
     { value: 5000, labelKey: 'longPressLong' },
     { value: 8000, labelKey: 'longPressCustom' },
   ];
-  const [geminiApiKey, setGeminiApiKey] = useState('');
-  const [geminiContext, setGeminiContext] = useState('');
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setGeminiApiKey(safeGetItem(GEMINI_API_KEY_STORAGE_KEY) ?? '');
-    setGeminiContext(safeGetItem(GEMINI_CONTEXT_STORAGE_KEY) ?? '');
-  }, [isOpen]);
+  const [geminiApiKey, setGeminiApiKey] = useState(
+    () => safeGetItem(GEMINI_API_KEY_STORAGE_KEY) ?? ''
+  );
+  const [geminiContext, setGeminiContext] = useState(
+    () => safeGetItem(GEMINI_CONTEXT_STORAGE_KEY) ?? ''
+  );
 
   const handleGeminiKeyChange = (value: string) => {
     setGeminiApiKey(value);
