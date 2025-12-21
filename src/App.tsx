@@ -65,6 +65,31 @@ const WORK_PLAN_STEPS = [
 const AI_STEP_PREFIXES = ['①', '②', '③', '④'];
 const AI_STEP_MINUTES = [5, 10, 15, 15];
 const AI_ALLOWED_MINUTES = new Set([5, 10, 15, 20]);
+
+const safeGetItem = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn('[App] localStorage.getItem failed:', error);
+    return null;
+  }
+};
+
+const safeSetItem = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    console.warn('[App] localStorage.setItem failed:', error);
+  }
+};
+
+const safeRemoveItem = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn('[App] localStorage.removeItem failed:', error);
+  }
+};
 const MEETING_MATERIALS_STEPS = [
   '① 目的・結論を1行で書く（5分）',
   '② 相手の論点を3つ予測する（5分）',
@@ -89,7 +114,7 @@ const formatCountdown = (ms: number): string => {
 
 const resolveThemeSetting = (): ThemeSetting => {
   if (typeof window === 'undefined') return 'system';
-  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  const stored = safeGetItem(THEME_STORAGE_KEY);
   if (stored === 'light' || stored === 'dark' || stored === 'system') {
     return stored;
   }
@@ -106,34 +131,25 @@ const resolveSystemTheme = (): 'light' | 'dark' => {
 
 const resolveLanguage = (): Language => {
   if (typeof window === 'undefined') return 'ja';
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  const stored = safeGetItem(LANGUAGE_STORAGE_KEY);
   if (stored === 'ja' || stored === 'en') return stored;
   return navigator.language.toLowerCase().startsWith('ja') ? 'ja' : 'en';
 };
 
 const resolveLongPressDelay = (): number => {
   if (typeof window === 'undefined') return 5000;
-  const stored = Number(localStorage.getItem(LONG_PRESS_STORAGE_KEY));
+  const stored = Number(safeGetItem(LONG_PRESS_STORAGE_KEY));
   return LONG_PRESS_OPTIONS.includes(stored) ? stored : 5000;
 };
 
 const resolveLastRoomId = (): string | null => {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(LAST_ROOM_STORAGE_KEY);
+  return safeGetItem(LAST_ROOM_STORAGE_KEY);
 };
 
 const resolveAutoSort = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem(AUTO_SORT_STORAGE_KEY) === 'true';
-};
-
-const safeGetItem = (key: string): string | null => {
-  try {
-    return localStorage.getItem(key);
-  } catch (error) {
-    console.warn('[App] localStorage.getItem failed:', error);
-    return null;
-  }
+  return safeGetItem(AUTO_SORT_STORAGE_KEY) === 'true';
 };
 
 const formatTimeAgo = (date: Date | null): string => {
@@ -389,7 +405,7 @@ function App() {
 
     const resolvedTheme = themeSetting === 'system' ? resolveSystemTheme() : themeSetting;
     applyTheme(resolvedTheme);
-    localStorage.setItem(THEME_STORAGE_KEY, themeSetting);
+    safeSetItem(THEME_STORAGE_KEY, themeSetting);
 
     if (themeSetting !== 'system' || !window.matchMedia) return;
 
@@ -409,22 +425,22 @@ function App() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    safeSetItem(LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language;
   }, [language]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(AUTO_SORT_STORAGE_KEY, String(autoSortBacklog));
+    safeSetItem(AUTO_SORT_STORAGE_KEY, String(autoSortBacklog));
   }, [autoSortBacklog]);
 
   useEffect(() => {
-    localStorage.setItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
+    safeSetItem(LONG_PRESS_STORAGE_KEY, String(secretLongPressDelay));
   }, [secretLongPressDelay]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const stored = localStorage.getItem(TIMER_STORAGE_KEY);
+    const stored = safeGetItem(TIMER_STORAGE_KEY);
     if (!stored) return;
 
     try {
@@ -437,17 +453,17 @@ function App() {
         setActiveTimer({ todoId: parsed.todoId, endsAt: parsed.endsAt, phase: parsed.phase });
       }
     } catch {
-      localStorage.removeItem(TIMER_STORAGE_KEY);
+      safeRemoveItem(TIMER_STORAGE_KEY);
     }
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!activeTimer) {
-      localStorage.removeItem(TIMER_STORAGE_KEY);
+      safeRemoveItem(TIMER_STORAGE_KEY);
       return;
     }
-    localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(activeTimer));
+    safeSetItem(TIMER_STORAGE_KEY, JSON.stringify(activeTimer));
   }, [activeTimer]);
 
   useEffect(() => {
@@ -903,7 +919,7 @@ function App() {
     if (result.success) {
       setCurrentRoomId(result.roomId);
       setLastRoomId(result.roomId);
-      localStorage.setItem(LAST_ROOM_STORAGE_KEY, result.roomId);
+      safeSetItem(LAST_ROOM_STORAGE_KEY, result.roomId);
       if (label) {
         setRoomLabel(result.roomId, label);
       }
