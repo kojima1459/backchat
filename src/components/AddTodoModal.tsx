@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export type TodoCreateType = 'normal' | 'workPlan';
+export type TodoCreateType = 'normal' | 'workPlan' | 'meetingMaterials';
 
 interface AddTodoModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
   const typeOptions: Array<{ value: TodoCreateType; label: string }> = [
     { value: 'normal', label: '通常' },
     { value: 'workPlan', label: '仕事の段取り' },
+    { value: 'meetingMaterials', label: '打ち合わせ資料' },
   ];
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export const AddTodoModal = ({ isOpen, onClose, onAdd }: AddTodoModalProps) => {
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <div className="text-xs text-text-muted mb-2">種類</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {typeOptions.map((option) => {
                 const isActive = taskType === option.value;
                 return (
