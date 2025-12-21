@@ -8,7 +8,7 @@ interface TodoItemProps {
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onToggleToday: (id: string) => void;
-  onStartTimer: (id: string) => void;
+  onStartTimer?: (id: string) => void;
   onEdit: (id: string, text: string) => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
@@ -36,7 +36,7 @@ export const TodoItem = ({
   const [editText, setEditText] = useState('');
   const isWorkStep = /^[①②③④⑤]/.test(todo.text);
   const isToday = Boolean(todo.isToday);
-  const showStartTimer = !todo.completed;
+  const showStartTimer = !todo.completed && Boolean(onStartTimer);
   const showReorder = !todo.completed && (onMoveUp || onMoveDown);
   const showSnooze = !todo.completed && (onSnoozeTomorrow || onSnoozeNextWeek);
   const deadlineLabel = (() => {
@@ -309,7 +309,7 @@ export const TodoItem = ({
             >
               今日
             </button>
-            {showStartTimer && (
+            {showStartTimer && onStartTimer && (
               <button
                 type="button"
                 onClick={(event) => {
@@ -321,7 +321,7 @@ export const TodoItem = ({
                 className="tap-target px-3 text-xs font-semibold rounded-full border
                   bg-bg-soft border-border-light text-text-sub hover:bg-gray-100"
               >
-                5分Start
+                ▶︎ 5分着手
               </button>
             )}
           </div>

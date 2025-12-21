@@ -25,6 +25,7 @@ import type { Language } from './i18n';
 
 type Screen = 'home' | 'chat';
 type ThemeSetting = 'system' | 'light' | 'dark';
+type TimerPhase = 'start' | 'focus' | 'rest';
 
 const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
   deleted: 'この共有は削除されました',
@@ -39,8 +40,9 @@ const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const AUTO_SORT_STORAGE_KEY = 'backlogAutoSort';
 const LONG_PRESS_OPTIONS = [2000, 3000, 5000, 8000];
 const TIMER_STORAGE_KEY = 'todoTimer';
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
-const TEN_MINUTES_MS = 10 * 60 * 1000;
+const START_PHASE_MS = 5 * 60 * 1000;
+const FOCUS_PHASE_MS = 25 * 60 * 1000;
+const REST_PHASE_MS = 5 * 60 * 1000;
 const WORK_PLAN_STEPS = [
   '① 完了条件を書く（5分）',
   '② 素材を集める（10分）',
@@ -264,12 +266,13 @@ function App() {
   const [secretLongPressDelay, setSecretLongPressDelay] = useState(resolveLongPressDelay);
   const [lastRoomId, setLastRoomId] = useState(resolveLastRoomId);
   const [lastActivityAt, setLastActivityAt] = useState<Date | null>(null);
-  const [activeTimer, setActiveTimer] = useState<{ todoId: string; endsAt: number } | null>(null);
+  const [activeTimer, setActiveTimer] = useState<{ todoId: string; endsAt: number; phase: TimerPhase } | null>(null);
   const [remainingMs, setRemainingMs] = useState(0);
   const [showTimerPrompt, setShowTimerPrompt] = useState(false);
   const [inboxText, setInboxText] = useState('');
   const [autoSortBacklog, setAutoSortBacklog] = useState(resolveAutoSort);
   const forcedWarningRef = useRef<string | null>(null);
+  const [continueArmed, setContinueArmed] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -320,9 +323,13 @@ function App() {
     if (!stored) return;
 
     try {
-      const parsed = JSON.parse(stored) as { todoId?: string; endsAt?: number };
-      if (parsed.todoId && typeof parsed.endsAt === 'number') {
-        setActiveTimer({ todoId: parsed.todoId, endsAt: parsed.endsAt });
+      const parsed = JSON.parse(stored) as { todoId?: string; endsAt?: number; phase?: TimerPhase };
+      if (
+        parsed.todoId
+        && typeof parsed.endsAt === 'number'
+        && (parsed.phase === 'start' || parsed.phase === 'focus' || parsed.phase === 'rest')
+      ) {
+        setActiveTimer({ todoId: parsed.todoId, endsAt: parsed.endsAt, phase: parsed.phase });
       }
     } catch {
       localStorage.removeItem(TIMER_STORAGE_KEY);
@@ -369,11 +376,23 @@ function App() {
   }, [activeTimer]);
 
   useEffect(() => {
+    if (!showTimerPrompt) return;
+    setContinueArmed(false);
+  }, [showTimerPrompt]);
+
+  useEffect(() => {
+    if (!continueArmed) return;
+    const timeoutId = window.setTimeout(() => setContinueArmed(false), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [continueArmed]);
+
+  useEffect(() => {
     if (!activeTimer) return;
     const target = todos.find((todo) => todo.id === activeTimer.todoId);
-    if (!target || target.completed) {
+    if (!target || target.completed || !target.isToday) {
       setActiveTimer(null);
       setShowTimerPrompt(false);
+      setContinueArmed(false);
     }
   }, [activeTimer, todos]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -506,13 +525,15 @@ function App() {
   }, [setTodoToday, setToast, todos]);
 
   const handleStartTimer = useCallback((id: string) => {
-    setActiveTimer({ todoId: id, endsAt: Date.now() + FIVE_MINUTES_MS });
+    setActiveTimer({ todoId: id, endsAt: Date.now() + START_PHASE_MS, phase: 'start' });
     setShowTimerPrompt(false);
+    setContinueArmed(false);
   }, []);
 
   const handleStopTimer = useCallback(() => {
     setActiveTimer(null);
     setShowTimerPrompt(false);
+    setContinueArmed(false);
   }, []);
 
   const handleCompleteFromTimer = useCallback(() => {
@@ -523,18 +544,32 @@ function App() {
     }
     setActiveTimer(null);
     setShowTimerPrompt(false);
+    setContinueArmed(false);
   }, [activeTimer, todos, toggleTodo]);
 
   const handleContinueTimer = useCallback(() => {
     if (!activeTimer) return;
-    setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + TEN_MINUTES_MS });
+    const nextPhase: TimerPhase = activeTimer.phase === 'start'
+      ? 'focus'
+      : 'focus';
+    const duration = activeTimer.phase === 'start' ? FOCUS_PHASE_MS : FOCUS_PHASE_MS;
+    setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + duration, phase: nextPhase });
     setShowTimerPrompt(false);
+    setContinueArmed(false);
   }, [activeTimer]);
 
-  const handleStopFromPrompt = useCallback(() => {
+  const handlePrimaryTimerAction = useCallback(() => {
+    if (!activeTimer) return;
+    if (activeTimer.phase === 'focus') {
+      setActiveTimer({ todoId: activeTimer.todoId, endsAt: Date.now() + REST_PHASE_MS, phase: 'rest' });
+      setShowTimerPrompt(false);
+      setContinueArmed(false);
+      return;
+    }
     setActiveTimer(null);
     setShowTimerPrompt(false);
-  }, []);
+    setContinueArmed(false);
+  }, [activeTimer]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -776,6 +811,13 @@ function App() {
   const activeTimerTodo = activeTimer
     ? todos.find((todo) => todo.id === activeTimer.todoId) ?? null
     : null;
+  const timerPhaseLabel = activeTimer
+    ? activeTimer.phase === 'start'
+      ? '着手'
+      : activeTimer.phase === 'focus'
+        ? '集中'
+        : '休憩'
+    : '';
 
   const handleMoveBacklog = useCallback((id: string, direction: -1 | 1) => {
     const index = backlogActiveIds.indexOf(id);
@@ -890,7 +932,6 @@ function App() {
                   todo={todo}
                   onToggle={handleToggle}
                   onToggleToday={handleToggleToday}
-                  onStartTimer={handleStartTimer}
                   onEdit={handleEditTodo}
                   onMoveUp={canMoveUp ? () => handleMoveBacklog(todo.id, -1) : undefined}
                   onMoveDown={canMoveDown ? () => handleMoveBacklog(todo.id, 1) : undefined}
@@ -972,7 +1013,7 @@ function App() {
                 {activeTimerTodo.text}
               </p>
               <p className="text-xs text-text-muted">
-                {formatCountdown(remainingMs)}
+                {timerPhaseLabel} · {formatCountdown(remainingMs)}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -1004,7 +1045,9 @@ function App() {
               animate-slide-up"
           >
             <div className="mb-4">
-              <p className="text-sm text-text-muted">5分経ちました</p>
+              <p className="text-sm text-text-muted">
+                {activeTimer.phase === 'start' ? '着手が終了' : activeTimer.phase === 'focus' ? '集中が終了' : '休憩が終了'}
+              </p>
               <h2 className="text-lg font-bold text-text-main">
                 次はどうする？
               </h2>
@@ -1015,27 +1058,25 @@ function App() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={handleContinueTimer}
+                onClick={handlePrimaryTimerAction}
                 className="w-full py-3 bg-brand-mint text-white font-bold rounded-xl
                   hover:bg-main-deep transition-colors"
               >
-                続ける（10分）
+                {activeTimer.phase === 'focus' ? '休憩する' : '終わる'}
               </button>
               <button
                 type="button"
-                onClick={handleStopFromPrompt}
+                onClick={() => {
+                  if (!continueArmed) {
+                    setContinueArmed(true);
+                    return;
+                  }
+                  handleContinueTimer();
+                }}
                 className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
                   text-text-sub font-medium hover:bg-gray-100 transition-colors"
               >
-                次へ移る
-              </button>
-              <button
-                type="button"
-                onClick={handleStopFromPrompt}
-                className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
-                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
-              >
-                いったん終了
+                {continueArmed ? '続ける（もう一度）' : '続ける'}
               </button>
             </div>
           </div>
