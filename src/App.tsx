@@ -254,7 +254,11 @@ function App() {
   // ホーム画面（ToDo）
   return (
     <div className="min-h-screen bg-bg-soft">
-      <Header onSettingsClick={() => setShowSettingsModal(true)} />
+      <Header
+        onSettingsClick={() => setShowSettingsModal(true)}
+        onSecretLongPress={handleSecretLongPress}
+        secretLongPressDelay={secretLongPressDelay}
+      />
       
       {/* オフライン警告 */}
       {!isOnline && (
@@ -278,7 +282,6 @@ function App() {
               todo={todo}
               onToggle={handleToggle}
               onDelete={deleteTodo}
-              onSecretLongPress={handleSecretLongPress}
               secretLongPressDelay={secretLongPressDelay}
             />
           ))}
