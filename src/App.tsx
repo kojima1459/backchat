@@ -42,6 +42,13 @@ const WORK_PLAN_STEPS = [
   '③ ドラフトを作る（15分）',
   '④ 清書して提出（15分）',
 ];
+const MEETING_MATERIALS_STEPS = [
+  '① 目的・結論を1行で書く（5分）',
+  '② 相手の論点を3つ予測する（5分）',
+  '③ 必要な材料を集める（10分）',
+  '④ 1枚ドラフト（15分）',
+  '⑤ 送付・共有（5分）',
+];
 
 const resolveThemeSetting = (): ThemeSetting => {
   if (typeof window === 'undefined') return 'system';
@@ -290,6 +297,10 @@ function App() {
   const handleAddTodo = useCallback((text: string, type: TodoCreateType) => {
     if (type === 'workPlan') {
       addTodos([text, ...WORK_PLAN_STEPS]);
+      return;
+    }
+    if (type === 'meetingMaterials') {
+      addTodos([text, ...MEETING_MATERIALS_STEPS]);
       return;
     }
     addTodo(text);
