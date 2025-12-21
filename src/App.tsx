@@ -1107,6 +1107,7 @@ function App() {
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+        onToast={(message) => setToast(message)}
         secretLongPressDelay={secretLongPressDelay}
         onSecretLongPressDelayChange={setSecretLongPressDelay}
         themeSetting={themeSetting}

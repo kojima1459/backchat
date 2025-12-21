@@ -3,9 +3,9 @@ import { X } from 'lucide-react';
 import { t, type Language } from '../i18n';
 import {
   AI_PROMPT_DESCRIPTION,
-  GEMINI_API_KEY_STORAGE_KEY,
   GEMINI_CONTEXT_STORAGE_KEY,
 } from '../constants/aiBreakdown';
+import { clearGeminiApiKey, getGeminiApiKey, setGeminiApiKey } from '../services/geminiKey';
 
 const safeGetItem = (key: string): string | null => {
   try {
@@ -37,6 +37,7 @@ type ThemeSetting = 'system' | 'light' | 'dark';
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onToast: (message: string) => void;
   secretLongPressDelay: number;
   onSecretLongPressDelayChange: (delay: number) => void;
   themeSetting: ThemeSetting;
@@ -48,6 +49,7 @@ interface SettingsModalProps {
 export const SettingsModal = ({ 
   isOpen, 
   onClose, 
+  onToast,
   secretLongPressDelay,
   onSecretLongPressDelayChange,
   themeSetting,
@@ -73,21 +75,17 @@ export const SettingsModal = ({
     { value: 5000, labelKey: 'longPressLong' },
     { value: 8000, labelKey: 'longPressCustom' },
   ];
-  const [geminiApiKey, setGeminiApiKey] = useState(
-    () => safeGetItem(GEMINI_API_KEY_STORAGE_KEY) ?? ''
-  );
+  const initialKeyTail = (() => {
+    const key = getGeminiApiKey();
+    return key ? key.slice(-4) : '';
+  })();
+  const [geminiKeyInput, setGeminiKeyInput] = useState('');
+  const [hasStoredKey, setHasStoredKey] = useState(Boolean(initialKeyTail));
+  const [storedKeyTail, setStoredKeyTail] = useState(initialKeyTail);
+  const [showKeyTail, setShowKeyTail] = useState(false);
   const [geminiContext, setGeminiContext] = useState(
     () => safeGetItem(GEMINI_CONTEXT_STORAGE_KEY) ?? ''
   );
-
-  const handleGeminiKeyChange = (value: string) => {
-    setGeminiApiKey(value);
-    if (value) {
-      safeSetItem(GEMINI_API_KEY_STORAGE_KEY, value);
-    } else {
-      safeRemoveItem(GEMINI_API_KEY_STORAGE_KEY);
-    }
-  };
 
   const handleGeminiContextChange = (value: string) => {
     setGeminiContext(value);
@@ -96,6 +94,24 @@ export const SettingsModal = ({
     } else {
       safeRemoveItem(GEMINI_CONTEXT_STORAGE_KEY);
     }
+  };
+
+  const handleSaveGeminiKey = () => {
+    const trimmed = geminiKeyInput.trim();
+    if (!trimmed) return;
+    setGeminiApiKey(trimmed);
+    setHasStoredKey(true);
+    setStoredKeyTail(trimmed.slice(-4));
+    setGeminiKeyInput('');
+    onToast(t(language, 'toastGeminiSaved'));
+  };
+
+  const handleClearGeminiKey = () => {
+    clearGeminiApiKey();
+    setHasStoredKey(false);
+    setStoredKeyTail('');
+    setGeminiKeyInput('');
+    onToast(t(language, 'toastGeminiRemoved'));
   };
 
   if (!isOpen) return null;
@@ -236,25 +252,47 @@ export const SettingsModal = ({
                 <div className="flex items-center gap-2">
                   <input
                     type="password"
-                    value={geminiApiKey}
-                    onChange={(event) => handleGeminiKeyChange(event.target.value)}
+                    value={geminiKeyInput}
+                    onChange={(event) => setGeminiKeyInput(event.target.value)}
                     placeholder="AIza..."
                     autoComplete="off"
                     className="flex-1 min-h-[44px] px-3 bg-bg-soft border border-border-light rounded-lg
-                      text-sm text-text-main placeholder:text-text-muted
+                      text-[16px] text-text-main placeholder:text-text-muted
                       focus:outline-none focus:border-brand-mint focus:ring-2 focus:ring-brand-mint/20"
                   />
-                  {geminiApiKey && (
+                  <button
+                    type="button"
+                    onClick={handleSaveGeminiKey}
+                    className="min-h-[44px] px-3 rounded-lg border border-border-light
+                      text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                  >
+                    {t(language, 'actionSave')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearGeminiKey}
+                    className="min-h-[44px] px-3 rounded-lg border border-border-light
+                      text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                  >
+                    {t(language, 'actionRemove')}
+                  </button>
+                </div>
+                {hasStoredKey && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-text-muted">
+                    <span>
+                      {t(language, 'labelGeminiStored')}:{' '}
+                      {showKeyTail && storedKeyTail ? `••••${storedKeyTail}` : '••••'}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => handleGeminiKeyChange('')}
-                      className="min-h-[44px] px-3 rounded-lg border border-border-light
-                        text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowKeyTail((prev) => !prev)}
+                      className="px-2 py-1 rounded-full border border-border-light
+                        text-[11px] font-semibold text-text-sub hover:bg-gray-100 transition-colors"
                     >
-                      {t(language, 'actionClear')}
+                      {showKeyTail ? t(language, 'actionHide') : t(language, 'actionShow')}
                     </button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
               <div>
                 <div className="text-sm font-medium text-text-main mb-2">
