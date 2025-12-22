@@ -4,7 +4,7 @@
 // 変更点:
 //   - モーダル状態管理を useModalManager フックに分離
 //   - ルーム管理ロジックを useRoomManager フックに分離
-//   - 認証状態は AuthContext から直接取得（A-3 Prop Drilling解消）
+//   - 認証関連の処理はローカル専用化
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus, X } from 'lucide-react';
@@ -17,7 +17,6 @@ import { ChatRoom } from './components/ChatRoom';
 import { GuideOverlay } from './components/GuideOverlay';
 import { Toast, getRandomPositiveMessage } from './components/Toast';
 import { useTodos } from './hooks/useTodos';
-import { useAuth } from './contexts/AuthContext';
 import { joinRoom, getRoom } from './services/room';
 import type { JoinRoomErrorCode } from './services/room';
 import type { Todo, TodoKind } from './types/todo';
@@ -65,6 +64,7 @@ const JOIN_ROOM_ERROR_MESSAGES: Record<JoinRoomErrorCode, string> = {
 
 const THEME_STORAGE_KEY = 'theme';
 const LANGUAGE_STORAGE_KEY = 'language';
+const LOCAL_UID_STORAGE_KEY = 'localUid';
 const LONG_PRESS_STORAGE_KEY = 'secretLongPressDelay';
 const LAST_ROOM_STORAGE_KEY = 'lastRoomId';
 const AUTO_SORT_STORAGE_KEY = 'backlogAutoSort';
@@ -106,6 +106,17 @@ const safeRemoveItem = (key: string): void => {
   } catch (error) {
     console.warn('[App] localStorage.removeItem failed:', error);
   }
+};
+
+const resolveLocalUid = (): string => {
+  if (typeof window === 'undefined') return 'local';
+  const stored = safeGetItem(LOCAL_UID_STORAGE_KEY);
+  if (stored) return stored;
+  const generated = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  safeSetItem(LOCAL_UID_STORAGE_KEY, generated);
+  return generated;
 };
 const MEETING_MATERIALS_STEPS = [
   '① 目的・結論を1行で書く（5分）',
@@ -431,8 +442,10 @@ const priorityScore = (todo: Todo, now: Date): number => {
 };
 
 function App() {
-  // [リファクタ A-3] AuthContextから認証状態を直接取得
-  const { uid, isLoading, isOnline } = useAuth();
+  const [uid] = useState(() => resolveLocalUid());
+  const [isOnline, setIsOnline] = useState(
+    typeof window !== 'undefined' ? navigator.onLine : true
+  );
   const { todos, addTodos, addTodosAfter, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
   
   // モーダル状態
@@ -480,6 +493,20 @@ function App() {
   const [aiTodayLoading, setAiTodayLoading] = useState(false);
   const [aiTodayError, setAiTodayError] = useState<string | null>(null);
   const forcedWarningRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1147,7 +1174,7 @@ function App() {
   // [リファクタ B-3] 依存配列にisOnlineを追加して常に最新の状態で判定
   const handleJoinRoom = useCallback(async (roomKey: string, label: string) => {
     if (!uid) {
-      setJoinError('認証に失敗しました。再読み込みしてください。');
+      setJoinError('端末IDの取得に失敗しました。再読み込みしてください。');
       return;
     }
     
@@ -1213,7 +1240,7 @@ function App() {
   }, [updateRegistration]);
 
   // ローディング中
-  if (isLoading || !isLoaded) {
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-bg-soft flex items-center justify-center">
         <div className="text-center">

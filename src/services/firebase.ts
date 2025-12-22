@@ -1,9 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import type { User } from "firebase/auth";
 import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 
-// Firebase設定（productionの認証エラー対策）
+// Firebase設定（productionの初期化固定）
 const firebaseConfig = {
   apiKey: "AIzaSyBx_5d5BoUiCtV65VfismAVF0qnYP7sgcE",
   authDomain: "shiretto-todo-chat.firebaseapp.com",
@@ -21,7 +19,6 @@ if (import.meta.env.DEV) {
 }
 
 // Export Firebase services
-export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 if (typeof window !== 'undefined') {
@@ -40,16 +37,4 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Anonymous sign-in function
-export const ensureSignedIn = async (): Promise<string> => {
-  if (auth.currentUser) {
-    return auth.currentUser.uid;
-  }
-  const userCredential = await signInAnonymously(auth);
-  return userCredential.user.uid;
-};
-
-// Auth state observer
-export const onAuthChange = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, callback);
-};
+// Firebase Auth is intentionally not used for local-only mode.
