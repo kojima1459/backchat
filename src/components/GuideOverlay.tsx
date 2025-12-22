@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { X } from 'lucide-react';
 import type { Language } from '../i18n';
 
 const SHOW_GUIDE_SHORTCUT = false;
@@ -9,67 +10,72 @@ const GUIDE_CONTENT = {
     back: '← 戻る',
     sections: [
       {
-        title: 'すぐ使う',
+        title: 'このアプリの目的',
         items: [
-          '上の入力欄に書いて追加（複数行ならまとめて追加）',
-          'タスクをタップで完了、長押しで削除',
+          '「今日やる3つ」を決めて終わらせる（Todayは3つまで）',
         ],
       },
       {
-        title: '今日（最大3つ）',
+        title: 'インボックス',
         items: [
-          '今日は3つだけ。終わらせることが目的です',
+          '改行ごとに複数タスクを追加できます',
+        ],
+      },
+      {
+        title: 'Today / Backlog',
+        items: [
+          'Todayが上に固定され、Backlogはスクロールします',
           '各タスクの「今日」切替で入れ替えできます',
         ],
       },
       {
-        title: '編集・並び替え',
+        title: 'スヌーズ（明日/来週）',
         items: [
-          'タスクは複数行で編集できます',
-          'バックログは ↑↓ で並び替えできます',
+          '押すと一旦見えなくなり、日付が来たら戻ります',
         ],
       },
       {
-        title: 'スヌーズ',
+        title: '5分着手タイマー',
         items: [
-          '「明日」「来週」で一旦隠して、期日になったら戻ります',
-        ],
-      },
-      {
-        title: '締切と自動優先',
-        items: [
-          '締切があるものは期限が近いほど上に来ます（自動優先ON時）',
+          'Todayから開始します',
+          '終了時は「休憩する」がデフォルトで、「続ける」は二段階です（止まる設計）',
         ],
       },
       {
         title: '返信/支払い',
         items: [
-          '忘れやすい系は自動でTodayに1件入ることがあります',
+          'Reply/Pay のkindがあり、未完了があれば1件だけTodayに入ります（忘れ防止）',
         ],
       },
       {
-        title: 'タイマー（集中しすぎ防止）',
+        title: 'AI 今日3つを確定（重要）',
         items: [
-          '5分着手→集中→休憩。終わりは「休憩」が基本で、続けるには一手間あります',
+          'ボタンを押す',
+          'AIが「今日の3つ候補 + 理由 + 最初の5分」を返す',
+          '「適用」1タップでTodayに入る',
+          '判断がしんどい時はこれだけ押せばOK',
         ],
       },
       {
-        title: 'AI 段取り分解',
+        title: 'AI 段取り分解（重要）',
         items: [
-          'Gemini APIキーを設定すると、1タスクを手順に分解してサブToDoにできます',
-          'キーも含めてデータは端末内保存です',
+          'タスクの「AI 段取り分解」を押す',
+          'AIが「完了条件→素材→ドラフト→清書」を生成',
+          '「サブToDoとして追加」で①〜④がBacklogに増える',
+          '逆算が苦手な人のための機能です',
         ],
       },
       {
-        title: '表示',
+        title: 'データについて',
         items: [
-          'テーマ（ライト/ダーク/自動）、言語（日本語/英語）を切替できます',
+          'ログイン不要。基本は端末内（localStorage）に保存されます',
+          '端末を変えると引き継がれない可能性があります',
         ],
       },
       {
-        title: 'プライバシー',
+        title: '製作者表記（フッターに小さく）',
         items: [
-          'データは基本この端末内（localStorage）に保存されます',
+          '製作者：MASAHIDE KOJIMA / X：@kojima920 / thanks for my family',
         ],
       },
     ],
@@ -83,24 +89,22 @@ const GUIDE_CONTENT = {
     back: '← Back',
     sections: [
       {
-        title: 'Quick start',
+        title: 'Purpose',
         items: [
-          'Type in the inbox and add tasks (multi-line = multiple tasks)',
-          'Tap a task to complete, long-press to delete',
+          'Pick and finish 3 things for today (Today is limited to 3)',
         ],
       },
       {
-        title: 'Today (max 3)',
+        title: 'Inbox',
         items: [
-          'Keep only 3 items for today to avoid overload',
+          'Multi-line input adds multiple tasks',
+        ],
+      },
+      {
+        title: 'Today / Backlog',
+        items: [
+          'Today stays pinned at the top while Backlog scrolls',
           'Toggle “Today” on each task to move it',
-        ],
-      },
-      {
-        title: 'Edit & Reorder',
-        items: [
-          'Edit supports multi-line',
-          'Reorder Backlog with ↑ ↓',
         ],
       },
       {
@@ -110,40 +114,47 @@ const GUIDE_CONTENT = {
         ],
       },
       {
-        title: 'Deadlines & Auto priority',
+        title: '5-min start timer',
         items: [
-          'When Auto Priority is ON, closer deadlines bubble up',
+          'Start from a Today item',
+          'Default action is “Rest/Stop”; “Continue” needs extra friction',
         ],
       },
       {
         title: 'Reply / Pay',
         items: [
-          'One reply/payment may be forced into Today to prevent forgetting',
+          'Reply/Pay kinds may force one item into Today to prevent forgetting',
         ],
       },
       {
-        title: 'Stop-first Timer',
+        title: 'AI pick Today 3 (Important)',
         items: [
-          '5-min start → Focus → Break. Default is rest/stop; continue needs extra friction',
+          'Press the button',
+          'AI returns 3 picks + reasons + first 5 minutes',
+          'Tap “Apply” to fill Today',
+          'When decision feels hard, just press this',
         ],
       },
       {
-        title: 'AI Breakdown',
+        title: 'AI Breakdown (Important)',
         items: [
-          'Add your Gemini API key to break a task into steps and add sub-todos',
-          'Everything stays on-device (localStorage)',
+          'Press “AI Breakdown” on a task',
+          'AI generates: Done condition → Materials → Draft → Finalize',
+          'Tap “Add as sub-todos” to add ①–④ to Backlog',
+          'For people who struggle with backward planning',
         ],
       },
       {
-        title: 'Display',
+        title: 'Data',
         items: [
-          'Theme (Light/Dark/System) + Language (JP/EN)',
+          'No login. Data is stored locally (localStorage)',
+          'Switching devices may not carry data over',
         ],
       },
       {
-        title: 'Privacy',
+        title: 'Creator note (footer)',
         items: [
-          'Data is stored locally on this device',
+          '製作者：MASAHIDE KOJIMA / X：@kojima920 / thanks for my family',
         ],
       },
     ],
@@ -190,7 +201,13 @@ export const GuideOverlay = ({ isOpen, onClose, language }: GuideOverlayProps) =
           <h2 className="text-[17px] font-semibold text-text-main text-center">
             {content.title}
           </h2>
-          <div />
+          <button
+            onClick={onClose}
+            className="tap-target p-2 justify-self-end hover:bg-gray-100 transition-colors"
+            aria-label="閉じる"
+          >
+            <X className="w-5 h-5 text-text-sub" />
+          </button>
         </div>
       </header>
 

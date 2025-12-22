@@ -65,7 +65,8 @@ export const Header = ({
           <button
             onClick={onHelpClick}
             className="tap-target p-2 hover:bg-gray-100 transition-colors"
-            aria-label="ヘルプ"
+            aria-label="使い方"
+            title="使い方"
           >
             <HelpCircle className="w-6 h-6 text-text-sub" strokeWidth={1.75} />
           </button>
