@@ -325,6 +325,27 @@ export const SettingsModal = ({
 
           <section>
             <p className="text-xs font-semibold text-text-muted mb-2">
+              ヘルプ
+            </p>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  window.location.href = '/lp#howto';
+                }}
+                className="w-full tap-target justify-center px-4 py-3 rounded-lg border border-border-light
+                  text-sm font-semibold text-text-main bg-bg-soft hover:bg-gray-100 transition-colors"
+              >
+                使い方（LP）
+              </button>
+              <p className="text-xs text-text-muted">
+                LPで「今日3つ」の流れとAI機能の詳しい使い方を確認できます。
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <p className="text-xs font-semibold text-text-muted mb-2">
               {t(language, 'sectionAbout')}
             </p>
             <div className="flex items-center justify-between p-3 bg-bg-soft rounded-lg">
