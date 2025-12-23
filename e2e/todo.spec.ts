@@ -18,7 +18,7 @@ test.describe('ToDo機能', () => {
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     // ローディング完了を待機
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
   });
 
   // ========================================
@@ -89,7 +89,7 @@ test.describe('ToDo機能', () => {
     await page.reload();
     
     // ローディング完了を待機
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
     
     // タスクが保持されていることを確認
     await expect(page.getByText('永続化テスト')).toBeVisible();

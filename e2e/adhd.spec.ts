@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 const waitForHome = async (page: import('@playwright/test').Page) => {
-  await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
 };
 
 const addInboxTasks = async (page: import('@playwright/test').Page, text: string) => {

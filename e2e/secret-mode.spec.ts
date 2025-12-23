@@ -13,7 +13,7 @@ test.describe('共有モーダル（裏入口）', () => {
       localStorage.setItem('secretLongPressDelay', '2000');
     });
     await page.goto('/');
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
   });
 
   test('長押しで共有モーダルを開ける', async ({ page }) => {
@@ -67,7 +67,7 @@ test.describe('共有モーダル（裏入口）', () => {
 test.describe('設定画面', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
   });
 
   test('設定モーダルが正しく表示される', async ({ page }) => {

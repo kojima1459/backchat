@@ -57,7 +57,7 @@ test.describe('PWA機能', () => {
     await page.goto('/');
     
     // ヘッダーが表示されることを確認
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
     
     // FABボタンが表示されることを確認
     await expect(page.getByRole('button', { name: 'タスクを追加' })).toBeVisible();
@@ -100,7 +100,7 @@ test.describe('オフライン対応', () => {
      * 期待結果: 「ネットにつながってないみたい」が表示される
      */
     await page.goto('/');
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
     
     // オフラインモードをシミュレート
     await context.setOffline(true);
@@ -126,7 +126,7 @@ test.describe('オフライン対応', () => {
      */
     // まずオンラインでページを読み込む
     await page.goto('/');
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
     
     // タスクを追加
     await page.getByRole('button', { name: 'タスクを追加' }).click();
@@ -156,6 +156,6 @@ test.describe('オフライン対応', () => {
     });
 
     await page.goto('/');
-    await expect(page.getByText('今日3つ')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByPlaceholder('インボックスに追加（改行で複数）')).toBeVisible({ timeout: 10000 });
   });
 });
