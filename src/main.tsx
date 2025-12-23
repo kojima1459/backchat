@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import LandingPage from './pages/LandingPage.tsx'
 
 const RUNTIME_ERROR_OVERLAY_ID = 'runtime-error-overlay';
 
@@ -79,8 +80,16 @@ if (typeof window !== 'undefined') {
   });
 }
 
+export const Root = () => {
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  if (pathname.startsWith('/lp')) {
+    return <LandingPage />;
+  }
+  return <App />;
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Root />
   </StrictMode>,
 )
