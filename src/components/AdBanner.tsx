@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+
 
 export const AdBanner = () => {
     // Add a random query param to prevent caching issues if needed, or just keep it simple
