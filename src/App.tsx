@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Plus, X } from 'lucide-react';
+import { AdBanner } from './components/AdBanner';
 import { Header } from './components/Header';
 import { TodoItem } from './components/TodoItem';
 import { AddTodoModal, type TodoCreateType } from './components/AddTodoModal';
@@ -1456,6 +1457,8 @@ function App() {
             </p>
           </div>
         )}
+
+        <AdBanner />
 
         <footer
           className="mt-10 pb-[calc(12px+env(safe-area-inset-bottom))]
