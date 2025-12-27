@@ -1,5 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
+import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import LandingPage from './pages/LandingPage.tsx'
@@ -32,9 +34,9 @@ const renderRuntimeErrorOverlay = (message: string) => {
       container.setAttribute(
         'style',
         'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);' +
-          'background:#0f172a;color:#fff;padding:10px 12px;border-radius:9999px;' +
-          'font-size:12px;max-width:90%;display:flex;gap:8px;align-items:center;' +
-          'box-shadow:0 8px 20px rgba(15,23,42,0.25);z-index:9999;'
+        'background:#0f172a;color:#fff;padding:10px 12px;border-radius:9999px;' +
+        'font-size:12px;max-width:90%;display:flex;gap:8px;align-items:center;' +
+        'box-shadow:0 8px 20px rgba(15,23,42,0.25);z-index:9999;'
       );
 
       messageEl = document.createElement('div');
@@ -50,7 +52,7 @@ const renderRuntimeErrorOverlay = (message: string) => {
       button.setAttribute(
         'style',
         'background:#ffffff1f;border:none;color:#fff;padding:4px 10px;' +
-          'border-radius:9999px;font-size:12px;cursor:pointer;'
+        'border-radius:9999px;font-size:12px;cursor:pointer;'
       );
       button.addEventListener('click', () => {
         window.location.reload();
@@ -90,6 +92,10 @@ export const Root = () => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <HelmetProvider>
+      <BrowserRouter>
+        <Root />
+      </BrowserRouter>
+    </HelmetProvider>
   </StrictMode>,
 )

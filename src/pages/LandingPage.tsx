@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { SeoHead } from "../components/SeoHead";
 
 const Section = ({
   id,
@@ -39,16 +40,36 @@ const ListItem = ({ title, body }: { title: string; body: string }) => (
 );
 
 const LandingPage = () => {
-  useEffect(() => {
-    const prevTitle = document.title;
-    document.title = "The ToDo";
-    return () => {
-      document.title = prevTitle;
-    };
-  }, []);
+  // structuredData for application
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "The ToDo",
+    "applicationCategory": "Productivity",
+    "operatingSystem": "Web, iOS, Android",
+    "description": "ADHDでも回る“止める設計”のToDoアプリ。インボックス統合、AI段取り分解、過集中ストップ機能搭載。",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JPY"
+    },
+    "featureList": [
+      "AI段取り分解",
+      "今日3つ",
+      "過集中防止タイマー",
+      "共有メモ"
+    ],
+    "screenshot": "https://shiretto-todo-chat.web.app/icon-512.png" // Temporary, should use real screenshot
+  };
 
   return (
     <div className="min-h-screen bg-bg-soft text-text-main">
+      <SeoHead
+        title="今日３つに絞り、前に進め！"
+        description="ADHDでも回る“止める設計”のToDoアプリ。インボックス統合、AI段取り分解、過集中ストップ機能搭載。"
+        keywords="ToDo, ADHD, タスク管理, AI, Gemini, 時間管理"
+        structuredData={jsonLd}
+      />
       <header className="sticky top-0 z-20 backdrop-blur bg-bg-soft/90 border-b border-border-light">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex flex-col">

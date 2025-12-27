@@ -442,27 +442,29 @@ const priorityScore = (todo: Todo, now: Date): number => {
   return score;
 };
 
+import { SeoHead } from './components/SeoHead';
+
 function App() {
   const [uid] = useState(() => resolveLocalUid());
   const [isOnline, setIsOnline] = useState(
     typeof window !== 'undefined' ? navigator.onLine : true
   );
   const { todos, addTodos, addTodosAfter, setTodoOrders, toggleTodo, setTodoToday, snoozeTodo, deleteTodo, editTodo, isLoaded } = useTodos();
-  
+
   // モーダル状態
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
-  
+
   // チャット状態
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
-  
+
   // ルーム参加状態
   const [joinLoading, setJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
-  
+
   // トースト状態
   const [toast, setToast] = useState<string | null>(null);
   const [updateReady, setUpdateReady] = useState(false);
@@ -1178,19 +1180,19 @@ function App() {
       setJoinError('端末IDの取得に失敗しました。再読み込みしてください。');
       return;
     }
-    
+
     if (!isOnline) {
       setJoinError('ネットにつながってないみたい');
       return;
     }
-    
+
     setJoinLoading(true);
     setJoinError(null);
-    
+
     const result = await joinRoom(roomKey, uid);
-    
+
     setJoinLoading(false);
-    
+
     if (result.success) {
       setCurrentRoomId(result.roomId);
       setLastRoomId(result.roomId);
@@ -1317,7 +1319,7 @@ function App() {
         onSecretLongPress={handleSecretLongPress}
         secretLongPressDelay={secretLongPressDelay}
       />
-      
+
       {/* オフライン警告 */}
       {!isOnline && (
         <div className="mx-4 mb-2 p-3 bg-warning/10 border border-warning/20 rounded-xl">
@@ -1326,7 +1328,7 @@ function App() {
           </p>
         </div>
       )}
-      
+
       {/* メインコンテンツ */}
       <main className="px-4 pb-24">
         <form onSubmit={handleInboxSubmit} className="mt-2 mb-4">
@@ -1412,73 +1414,79 @@ function App() {
             自動優先（推奨）
           </button>
         </div>
+        <div className="h-4" />
 
-        <div className="space-y-2">
-          {sortedBacklogTodos.length > 0 ? (
-            sortedBacklogTodos.map((todo) => {
-              const index = backlogActiveIds.indexOf(todo.id);
-              const canMoveUp = !autoSortBacklog && index > 0;
-              const canMoveDown = !autoSortBacklog && index !== -1 && index < backlogActiveIds.length - 1;
-              const canSnooze = !todo.completed;
-              return (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  onToggle={handleToggle}
-                  onToggleToday={handleToggleToday}
-                  onEdit={handleEditTodo}
-                  onMoveUp={canMoveUp ? () => handleMoveBacklog(todo.id, -1) : undefined}
-                  onMoveDown={canMoveDown ? () => handleMoveBacklog(todo.id, 1) : undefined}
-                  onSnoozeTomorrow={canSnooze ? () => handleSnoozeTodo(todo.id, 1) : undefined}
-                  onSnoozeNextWeek={canSnooze ? () => handleSnoozeTodo(todo.id, 7) : undefined}
-                  onAiBreakdown={handleAiBreakdown}
-                  onDelete={deleteTodo}
-                  language={language}
-                  secretLongPressDelay={secretLongPressDelay}
-                />
-              );
-            })
-          ) : hasVisibleTodos ? (
-            <p className="text-sm text-text-muted py-2">バックログは空です</p>
-          ) : null}
-        </div>
+        {/* コンテンツエリア */}
+        <SeoHead title="App" />
+        <div className="flex-1 overflow-y-auto pb-[calc(80px+env(safe-area-inset-bottom))]">
 
-        {snoozedCount > 0 && (
-          <p className="text-xs text-text-muted mt-3">
-            スヌーズ中（{snoozedCount}）
-          </p>
-        )}
-        
-        {!hasVisibleTodos && (
-          <div className="text-center py-12">
-            <p className="text-text-muted">タスクがありません</p>
-            <p className="text-sm text-text-muted mt-1">
-              下の＋ボタンから追加しよう
-            </p>
+          <div className="space-y-2">
+            {sortedBacklogTodos.length > 0 ? (
+              sortedBacklogTodos.map((todo) => {
+                const index = backlogActiveIds.indexOf(todo.id);
+                const canMoveUp = !autoSortBacklog && index > 0;
+                const canMoveDown = !autoSortBacklog && index !== -1 && index < backlogActiveIds.length - 1;
+                const canSnooze = !todo.completed;
+                return (
+                  <TodoItem
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={handleToggle}
+                    onToggleToday={handleToggleToday}
+                    onEdit={handleEditTodo}
+                    onMoveUp={canMoveUp ? () => handleMoveBacklog(todo.id, -1) : undefined}
+                    onMoveDown={canMoveDown ? () => handleMoveBacklog(todo.id, 1) : undefined}
+                    onSnoozeTomorrow={canSnooze ? () => handleSnoozeTodo(todo.id, 1) : undefined}
+                    onSnoozeNextWeek={canSnooze ? () => handleSnoozeTodo(todo.id, 7) : undefined}
+                    onAiBreakdown={handleAiBreakdown}
+                    onDelete={deleteTodo}
+                    language={language}
+                    secretLongPressDelay={secretLongPressDelay}
+                  />
+                );
+              })
+            ) : hasVisibleTodos ? (
+              <p className="text-sm text-text-muted py-2">バックログは空です</p>
+            ) : null}
           </div>
-        )}
 
-        <AdBanner />
+          {snoozedCount > 0 && (
+            <p className="text-xs text-text-muted mt-3">
+              スヌーズ中（{snoozedCount}）
+            </p>
+          )}
 
-        <footer
-          className="mt-10 pb-[calc(12px+env(safe-area-inset-bottom))]
+          {!hasVisibleTodos && (
+            <div className="text-center py-12">
+              <p className="text-text-muted">タスクがありません</p>
+              <p className="text-sm text-text-muted mt-1">
+                下の＋ボタンから追加しよう
+              </p>
+            </div>
+          )}
+
+          <AdBanner />
+
+          <footer
+            className="mt-10 pb-[calc(12px+env(safe-area-inset-bottom))]
             text-[11px] text-text-muted leading-relaxed flex flex-wrap items-center
             gap-x-2 gap-y-1"
-        >
-          <span>製作者：MASAHIDE KOJIMA</span>
-          <span>X：</span>
-          <a
-            href="https://x.com/kojima920"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
           >
-            @kojima920
-          </a>
-          <span>thanks for my family</span>
-        </footer>
+            <span>製作者：MASAHIDE KOJIMA</span>
+            <span>X：</span>
+            <a
+              href="https://x.com/kojima920"
+              target="_blank"
+              rel="noreferrer"
+              className="underline"
+            >
+              @kojima920
+            </a>
+            <span>thanks for my family</span>
+          </footer>
+        </div>
       </main>
-      
+
       {/* FAB（タスク追加ボタン） */}
       <button
         onClick={() => setShowAddModal(true)}
@@ -1489,14 +1497,14 @@ function App() {
       >
         <Plus className="w-7 h-7 text-white" strokeWidth={2.5} />
       </button>
-      
+
       {/* モーダル群 */}
       <AddTodoModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddTodo}
       />
-      
+
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
@@ -1515,201 +1523,205 @@ function App() {
         language={language}
       />
 
-      {aiTodayOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
-          onClick={closeAiToday}
-        >
+      {
+        aiTodayOpen && (
           <div
-            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
-              animate-slide-up"
-            onClick={(event) => event.stopPropagation()}
+            className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+            onClick={closeAiToday}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-text-main">AIで今日3つ確定</h2>
-              <button
-                onClick={closeAiToday}
-                className="tap-target p-2 hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5 text-text-sub" />
-              </button>
-            </div>
+            <div
+              className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-text-main">AIで今日3つ確定</h2>
+                <button
+                  onClick={closeAiToday}
+                  className="tap-target p-2 hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-5 h-5 text-text-sub" />
+                </button>
+              </div>
 
-            {aiTodayLoading && (
-              <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
-                <div
-                  className="w-5 h-5 border-2 border-brand-mint border-t-transparent
+              {aiTodayLoading && (
+                <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
+                  <div
+                    className="w-5 h-5 border-2 border-brand-mint border-t-transparent
                     rounded-full animate-spin"
-                />
-                選定中...
-              </div>
-            )}
+                  />
+                  選定中...
+                </div>
+              )}
 
-            {aiTodayError && (
-              <div className="mb-4">
-                <p className="text-sm text-text-sub mb-2">{aiTodayError}</p>
-                <button
-                  type="button"
-                  onClick={handleRetryAiToday}
-                  className="min-h-[36px] px-3 rounded-full border border-border-light
+              {aiTodayError && (
+                <div className="mb-4">
+                  <p className="text-sm text-text-sub mb-2">{aiTodayError}</p>
+                  <button
+                    type="button"
+                    onClick={handleRetryAiToday}
+                    className="min-h-[36px] px-3 rounded-full border border-border-light
                     text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
-                >
-                  再試行
-                </button>
-              </div>
-            )}
+                  >
+                    再試行
+                  </button>
+                </div>
+              )}
 
-            {aiTodayResult && (
-              <div className="space-y-3">
-                {(language === 'ja' ? aiTodayResult.noteJa : aiTodayResult.noteEn) && (
-                  <p className="text-xs text-text-muted">
-                    {language === 'ja' ? aiTodayResult.noteJa : aiTodayResult.noteEn}
-                  </p>
-                )}
-                {aiTodayResult.picks.map((pick) => {
-                  const target = todos.find((todo) => todo.id === pick.id);
-                  const reason = language === 'ja' ? pick.reasonJa : pick.reasonEn;
-                  const first5min = language === 'ja' ? pick.first5minJa : pick.first5minEn;
-                  return (
-                    <div
-                      key={pick.id}
-                      className="p-3 bg-bg-soft rounded-lg text-sm text-text-main space-y-1"
-                    >
-                      <p className="font-semibold">
-                        {target?.text ?? pick.id}
-                      </p>
-                      <p className="text-xs text-text-muted">
-                        {reason}
-                      </p>
-                      <p className="text-xs text-text-muted">
-                        {first5min}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={closeAiToday}
-                className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
-                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleApplyAiToday}
-                disabled={!aiTodayResult || aiTodayLoading}
-                className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
-                  hover:bg-main-deep transition-colors disabled:bg-border-light
-                  disabled:cursor-not-allowed"
-              >
-                適用
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {aiBreakdownTodo && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
-          onClick={closeAiBreakdown}
-        >
-          <div
-            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
-              animate-slide-up"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-text-main">AI 段取り分解</h2>
-              <button
-                onClick={closeAiBreakdown}
-                className="tap-target p-2 hover:bg-gray-100 transition-colors"
-              >
-                <X className="w-5 h-5 text-text-sub" />
-              </button>
-            </div>
-            <p className="text-sm text-text-muted mb-4 truncate">
-              {aiBreakdownTodo.text}
-            </p>
-
-            {aiBreakdownLoading && (
-              <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
-                <div className="w-5 h-5 border-2 border-brand-mint border-t-transparent
-                  rounded-full animate-spin"
-                />
-                生成中...
-              </div>
-            )}
-
-            {aiBreakdownError && (
-              <div className="mb-4">
-                <p className="text-sm text-text-sub mb-2">{aiBreakdownError}</p>
-                <button
-                  type="button"
-                  onClick={handleRetryAiBreakdown}
-                  className="min-h-[36px] px-3 rounded-full border border-border-light
-                    text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
-                >
-                  再試行
-                </button>
-              </div>
-            )}
-
-            {aiBreakdownSteps && (
-              <div className="space-y-2">
-                {aiBreakdownSteps.map((step, index) => {
-                  const prefix = AI_STEP_PREFIXES[index] ?? AI_STEP_PREFIXES[0];
-                  const displayTitle = step.title.startsWith(prefix)
-                    ? step.title
-                    : `${prefix} ${step.title}`;
-                  return (
-                    <div
-                      key={`${index}-${step.title}`}
-                      className="p-3 bg-bg-soft rounded-lg text-sm text-text-main"
-                    >
-                      <p>
-                        {displayTitle}（{step.minutes}分）
-                      </p>
-                      {step.why && (
-                        <p className="mt-1 text-xs text-text-muted">
-                          理由: {step.why}
+              {aiTodayResult && (
+                <div className="space-y-3">
+                  {(language === 'ja' ? aiTodayResult.noteJa : aiTodayResult.noteEn) && (
+                    <p className="text-xs text-text-muted">
+                      {language === 'ja' ? aiTodayResult.noteJa : aiTodayResult.noteEn}
+                    </p>
+                  )}
+                  {aiTodayResult.picks.map((pick) => {
+                    const target = todos.find((todo) => todo.id === pick.id);
+                    const reason = language === 'ja' ? pick.reasonJa : pick.reasonEn;
+                    const first5min = language === 'ja' ? pick.first5minJa : pick.first5minEn;
+                    return (
+                      <div
+                        key={pick.id}
+                        className="p-3 bg-bg-soft rounded-lg text-sm text-text-main space-y-1"
+                      >
+                        <p className="font-semibold">
+                          {target?.text ?? pick.id}
                         </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                        <p className="text-xs text-text-muted">
+                          {reason}
+                        </p>
+                        <p className="text-xs text-text-muted">
+                          {first5min}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                onClick={closeAiBreakdown}
-                className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeAiToday}
+                  className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
                   text-text-sub font-medium hover:bg-gray-100 transition-colors"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={handleAddAiBreakdown}
-                disabled={!aiBreakdownSteps || aiBreakdownSteps.length === 0 || aiBreakdownLoading}
-                className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyAiToday}
+                  disabled={!aiTodayResult || aiTodayLoading}
+                  className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
                   hover:bg-main-deep transition-colors disabled:bg-border-light
                   disabled:cursor-not-allowed"
-              >
-                サブToDoとして追加
-              </button>
+                >
+                  適用
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
+        )
+      }
+
+      {
+        aiBreakdownTodo && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-end justify-center z-50"
+            onClick={closeAiBreakdown}
+          >
+            <div
+              className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-text-main">AI 段取り分解</h2>
+                <button
+                  onClick={closeAiBreakdown}
+                  className="tap-target p-2 hover:bg-gray-100 transition-colors"
+                >
+                  <X className="w-5 h-5 text-text-sub" />
+                </button>
+              </div>
+              <p className="text-sm text-text-muted mb-4 truncate">
+                {aiBreakdownTodo.text}
+              </p>
+
+              {aiBreakdownLoading && (
+                <div className="flex items-center gap-3 text-sm text-text-sub mb-4">
+                  <div className="w-5 h-5 border-2 border-brand-mint border-t-transparent
+                  rounded-full animate-spin"
+                  />
+                  生成中...
+                </div>
+              )}
+
+              {aiBreakdownError && (
+                <div className="mb-4">
+                  <p className="text-sm text-text-sub mb-2">{aiBreakdownError}</p>
+                  <button
+                    type="button"
+                    onClick={handleRetryAiBreakdown}
+                    className="min-h-[36px] px-3 rounded-full border border-border-light
+                    text-xs font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                  >
+                    再試行
+                  </button>
+                </div>
+              )}
+
+              {aiBreakdownSteps && (
+                <div className="space-y-2">
+                  {aiBreakdownSteps.map((step, index) => {
+                    const prefix = AI_STEP_PREFIXES[index] ?? AI_STEP_PREFIXES[0];
+                    const displayTitle = step.title.startsWith(prefix)
+                      ? step.title
+                      : `${prefix} ${step.title}`;
+                    return (
+                      <div
+                        key={`${index}-${step.title}`}
+                        className="p-3 bg-bg-soft rounded-lg text-sm text-text-main"
+                      >
+                        <p>
+                          {displayTitle}（{step.minutes}分）
+                        </p>
+                        {step.why && (
+                          <p className="mt-1 text-xs text-text-muted">
+                            理由: {step.why}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeAiBreakdown}
+                  className="flex-1 py-3 bg-bg-soft border border-border-light rounded-xl
+                  text-text-sub font-medium hover:bg-gray-100 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddAiBreakdown}
+                  disabled={!aiBreakdownSteps || aiBreakdownSteps.length === 0 || aiBreakdownLoading}
+                  className="flex-1 py-3 bg-brand-mint text-white font-bold rounded-xl
+                  hover:bg-main-deep transition-colors disabled:bg-border-light
+                  disabled:cursor-not-allowed"
+                >
+                  サブToDoとして追加
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
       <JoinRoomModal
         isOpen={showJoinModal}
         onClose={() => {
@@ -1721,109 +1733,119 @@ function App() {
         error={joinError}
       />
 
-      {activeTimer && activeTimerTodo && (
-        <div className="fixed bottom-0 left-0 right-0 bg-card-white border-t border-border-light
+      {
+        activeTimer && activeTimerTodo && (
+          <div className="fixed bottom-0 left-0 right-0 bg-card-white border-t border-border-light
           px-4 py-3 safe-area-bottom z-40"
-        >
-          <div className="flex items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-text-main truncate">
+          >
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-text-main truncate">
+                  {activeTimerTodo.text}
+                </p>
+                <p className="text-xs text-text-muted">
+                  {timerPhaseLabel} · {formatCountdown(remainingMs)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleStopTimer}
+                  className="min-h-[44px] px-4 rounded-full border border-border-light
+                  text-sm font-semibold text-text-sub hover:bg-gray-100 transition-colors"
+                >
+                  停止
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCompleteFromTimer}
+                  className="min-h-[44px] px-4 rounded-full bg-brand-mint text-white
+                  text-sm font-semibold hover:bg-main-deep transition-colors"
+                >
+                  完了
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        showTimerPrompt && activeTimer && activeTimerTodo && (
+          <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
+            <div
+              className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
+              animate-slide-up"
+            >
+              <div className="mb-4">
+                <p className="text-sm text-text-muted">
+                  {activeTimer.phase === 'start' ? '着手が終了' : activeTimer.phase === 'focus' ? '集中が終了' : '休憩が終了'}
+                </p>
+                <h2 className="text-lg font-bold text-text-main">
+                  次はどうする？
+                </h2>
+              </div>
+              <p className="text-sm text-text-sub mb-4 truncate">
                 {activeTimerTodo.text}
               </p>
-              <p className="text-xs text-text-muted">
-                {timerPhaseLabel} · {formatCountdown(remainingMs)}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleStopTimer}
-                className="min-h-[44px] px-4 rounded-full border border-border-light
-                  text-sm font-semibold text-text-sub hover:bg-gray-100 transition-colors"
-              >
-                停止
-              </button>
-              <button
-                type="button"
-                onClick={handleCompleteFromTimer}
-                className="min-h-[44px] px-4 rounded-full bg-brand-mint text-white
-                  text-sm font-semibold hover:bg-main-deep transition-colors"
-              >
-                完了
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showTimerPrompt && activeTimer && activeTimerTodo && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50">
-          <div
-            className="w-full max-w-lg bg-card-white rounded-t-2xl p-6 safe-area-bottom
-              animate-slide-up"
-          >
-            <div className="mb-4">
-              <p className="text-sm text-text-muted">
-                {activeTimer.phase === 'start' ? '着手が終了' : activeTimer.phase === 'focus' ? '集中が終了' : '休憩が終了'}
-              </p>
-              <h2 className="text-lg font-bold text-text-main">
-                次はどうする？
-              </h2>
-            </div>
-            <p className="text-sm text-text-sub mb-4 truncate">
-              {activeTimerTodo.text}
-            </p>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handlePrimaryTimerAction}
-                className="w-full py-3 bg-brand-mint text-white font-bold rounded-xl
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={handlePrimaryTimerAction}
+                  className="w-full py-3 bg-brand-mint text-white font-bold rounded-xl
                   hover:bg-main-deep transition-colors"
-              >
-                {activeTimer.phase === 'focus' ? '休憩する' : '終わる'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (window.confirm('続けますか？')) {
-                    handleContinueTimer();
-                  }
-                }}
-                className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
+                >
+                  {activeTimer.phase === 'focus' ? '休憩する' : '終わる'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('続けますか？')) {
+                      handleContinueTimer();
+                    }
+                  }}
+                  className="w-full py-3 bg-bg-soft border border-border-light rounded-xl
                   text-text-sub font-medium hover:bg-gray-100 transition-colors"
-              >
-                続ける
-              </button>
+                >
+                  続ける
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      
+        )
+      }
+
       {/* トースト */}
-      {updateReady && (
-        <Toast
-          message="Update available"
-          actionLabel="Reload"
-          onAction={handleUpdateReload}
-          duration={null}
-          onClose={() => setUpdateReady(false)}
-        />
-      )}
-      {connectionToast && (
-        <Toast
-          message={connectionToast.message}
-          duration={connectionToast.persist ? null : 2000}
-          onClose={() => setConnectionToast(null)}
-          positionClassName={updateReady ? 'bottom-32' : 'bottom-20'}
-        />
-      )}
-      {!updateReady && !connectionToast && toast ? (
-        <Toast
-          message={toast}
-          onClose={() => setToast(null)}
-        />
-      ) : null}
-    </div>
+      {
+        updateReady && (
+          <Toast
+            message="Update available"
+            actionLabel="Reload"
+            onAction={handleUpdateReload}
+            duration={null}
+            onClose={() => setUpdateReady(false)}
+          />
+        )
+      }
+      {
+        connectionToast && (
+          <Toast
+            message={connectionToast.message}
+            duration={connectionToast.persist ? null : 2000}
+            onClose={() => setConnectionToast(null)}
+            positionClassName={updateReady ? 'bottom-32' : 'bottom-20'}
+          />
+        )
+      }
+      {
+        !updateReady && !connectionToast && toast ? (
+          <Toast
+            message={toast}
+            onClose={() => setToast(null)}
+          />
+        ) : null
+      }
+    </div >
   );
 }
 
